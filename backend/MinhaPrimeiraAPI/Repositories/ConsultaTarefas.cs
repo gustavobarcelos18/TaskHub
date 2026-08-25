@@ -6,6 +6,7 @@ public sealed class ConsultaTarefas
     public string? Situacao { get; init; }
     public string? Prioridade { get; init; }
     public int? EtiquetaId { get; init; }
+    public int? ProjetoId { get; init; }
     public FiltroPrazoTarefa Prazo { get; init; }
     public DateOnly Hoje { get; init; }
     public CampoOrdenacaoTarefa OrdenarPor { get; init; }

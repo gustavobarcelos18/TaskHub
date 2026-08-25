@@ -17,6 +17,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ITarefaService, TarefaService>();
         services.AddScoped<IEtiquetaRepository, EtiquetaRepository>();
         services.AddScoped<IEtiquetaService, EtiquetaService>();
+        services.AddScoped<IProjetoRepository, ProjetoRepository>();
+        services.AddScoped<IProjetoService, ProjetoService>();
 
         return services;
     }

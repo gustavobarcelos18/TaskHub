@@ -24,5 +24,7 @@ public class TarefaResponse
 
     public DateTime? ExcluidaEm { get; set; }
 
+    public ProjetoResponse? Projeto { get; set; }
+
     public List<EtiquetaResponse> Etiquetas { get; set; } = [];
 }

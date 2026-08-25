@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
 
     public DbSet<Etiqueta> Etiquetas => Set<Etiqueta>();
 
+    public DbSet<Projeto> Projetos => Set<Projeto>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -69,6 +71,16 @@ public class AppDbContext : DbContext
 
             entity.Property(tarefa => tarefa.ExcluidaEm)
                 .HasColumnName("EXCLUIDA_EM");
+
+            entity.Property(tarefa => tarefa.ProjetoId)
+                .HasColumnName("PROJETO_ID");
+
+            entity.HasIndex(tarefa => tarefa.ProjetoId);
+
+            entity.HasOne(tarefa => tarefa.Projeto)
+                .WithMany(projeto => projeto.Tarefas)
+                .HasForeignKey(tarefa => tarefa.ProjetoId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasQueryFilter(
                 tarefa => tarefa.ExcluidaEm == null
@@ -128,6 +140,16 @@ public class AppDbContext : DbContext
             entity.Property(etiqueta => etiqueta.Nome).HasColumnName("NOME").HasMaxLength(50).IsRequired();
             entity.Property(etiqueta => etiqueta.NomeNormalizado).HasColumnName("NOME_NORMALIZADO").HasMaxLength(50).IsRequired();
             entity.HasIndex(etiqueta => etiqueta.NomeNormalizado).IsUnique();
+        });
+
+        modelBuilder.Entity<Projeto>(entity =>
+        {
+            entity.ToTable("PROJETOS");
+            entity.HasKey(projeto => projeto.Id);
+            entity.Property(projeto => projeto.Id).HasColumnName("ID").ValueGeneratedOnAdd();
+            entity.Property(projeto => projeto.Nome).HasColumnName("NOME").HasMaxLength(100).IsRequired();
+            entity.Property(projeto => projeto.NomeNormalizado).HasColumnName("NOME_NORMALIZADO").HasMaxLength(100).IsRequired();
+            entity.HasIndex(projeto => projeto.NomeNormalizado).IsUnique();
         });
 
         modelBuilder.Entity<Tarefa>()

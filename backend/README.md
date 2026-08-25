@@ -98,12 +98,15 @@ Arquivos `.db`, `.db-shm` e `.db-wal` em `Database/` são ignorados pelo Git. A 
 | GET | `/api/etiquetas` | 200 `EtiquetaResponse[]` | — |
 | POST | `/api/etiquetas` | 201 `EtiquetaResponse` | 400, 409 |
 | DELETE | `/api/etiquetas/{id}` | 204 | 400, 404 |
+| GET | `/api/projetos` | 200 `ProjetoResponse[]` | — |
+| POST | `/api/projetos` | 201 `ProjetoResponse` | 400, 409 |
+| DELETE | `/api/projetos/{id}` | 204 | 400, 404 |
 
 `id` deve ser maior que zero. O detalhe normal só encontra tarefas ativas; o histórico continua disponível para uma tarefa excluída logicamente. A lixeira lista exclusões lógicas. A exclusão permanente requer que a tarefa já esteja na lixeira e também remove seu histórico.
 
 ### Criar e atualizar
 
-`POST /api/tarefas` aceita `descricao` obrigatória (até 200 caracteres), `situacao` opcional, `prioridade` opcional e `dataVencimento` opcional. Os padrões de criação são `Pendente` e `Media`. `PUT /api/tarefas/{id}` exige `descricao`, `situacao` e `prioridade`; `dataVencimento` continua opcional e pode ser `null`.
+`POST /api/tarefas` aceita `descricao` obrigatória (até 200 caracteres), `situacao` opcional, `prioridade` opcional, `dataVencimento` opcional e `projetoId` opcional. Os padrões de criação são `Pendente` e `Media`. `PUT /api/tarefas/{id}` exige `descricao`, `situacao` e `prioridade`; `dataVencimento` e `projetoId` continuam opcionais e podem ser `null`. A resposta inclui o objeto `projeto` quando houver associação.
 
 - Situação: `Pendente`, `Em andamento`, `Concluída`.
 - Prioridade: `Baixa`, `Media`, `Alta` (`Media` é o valor da API; a interface apresenta “Média”).
@@ -126,6 +129,7 @@ Content-Type: application/json
 | `situacao` | valores de situação | Comparação canônica; inválido retorna 400. |
 | `prioridade` | `Baixa`, `Media`, `Alta` | Aceita a normalização definida pela API; inválido retorna 400. |
 | `prazo` | `vencidas`, `vencemHoje`, `proximas`, `semVencimento` | Sem filtro quando ausente. |
+| `projetoId` | inteiro positivo | Filtra tarefas pelo projeto antes da ordenação e paginação. |
 | `ordenarPor` | `descricao`, `situacao`, `prioridade`, `dataVencimento`, `ultimaAtualizacao` | `ultimaAtualizacao`. |
 | `direcao` | `asc`, `desc` | `desc`. |
 | `pagina` | inteiro ≥ 1 | `1`; inválido retorna 400. |

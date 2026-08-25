@@ -12,6 +12,7 @@ import {
 import { TabelaTarefas } from "@/features/tarefas/components/TabelaTarefas";
 import { listarTarefas } from "@/features/tarefas/services/tarefa-service";
 import { listarEtiquetas } from "@/features/tarefas/services/etiqueta-service";
+import { listarProjetos } from "@/features/tarefas/services/projeto-service";
 import { PRAZOS_TAREFA, PRIORIDADES_TAREFA, SITUACOES_TAREFA, type ConsultaTarefas, type DirecaoOrdenacao, type OrdenarTarefasPor, type PrazoTarefa, type PrioridadeTarefa, type SituacaoTarefa } from "@/features/tarefas/types/tarefa";
 
 type TarefasPageProps = {
@@ -35,12 +36,13 @@ export default async function TarefasPage({ searchParams }: TarefasPageProps) {
     prioridade: obterValorValido<PrioridadeTarefa>(parametros.prioridade, PRIORIDADES_TAREFA),
     prazo: obterValorValido<PrazoTarefa>(parametros.prazo, PRAZOS_TAREFA),
     etiquetaId: obterNumero(parametros.etiquetaId),
+    projetoId: obterNumero(parametros.projetoId),
     ordenarPor: obterValorValido<OrdenarTarefasPor>(parametros.ordenarPor, ["descricao", "situacao", "prioridade", "dataVencimento", "ultimaAtualizacao"]),
     direcao: obterValorValido<DirecaoOrdenacao>(parametros.direcao, ["asc", "desc"]),
     pagina: obterNumero(parametros.pagina),
     tamanhoPagina: obterNumero(parametros.tamanhoPagina),
   };
-  const [tarefas, etiquetas] = await Promise.all([listarTarefas(consulta), listarEtiquetas()]);
+  const [tarefas, etiquetas, projetos] = await Promise.all([listarTarefas(consulta), listarEtiquetas(), listarProjetos()]);
 
   return (
     <Box
@@ -52,8 +54,8 @@ export default async function TarefasPage({ searchParams }: TarefasPageProps) {
         py: { xs: 4, sm: 6 },
       }}
     >
-      <Container maxWidth="lg">
-        <Stack spacing={4}>
+      <Container maxWidth="xl">
+        <Stack spacing={3}>
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={2}
@@ -103,7 +105,7 @@ export default async function TarefasPage({ searchParams }: TarefasPageProps) {
             </Stack>
           </Stack>
 
-          <TabelaTarefas resultado={tarefas} consulta={consulta} etiquetas={etiquetas} />
+          <TabelaTarefas resultado={tarefas} consulta={consulta} etiquetas={etiquetas} projetos={projetos} />
         </Stack>
       </Container>
     </Box>

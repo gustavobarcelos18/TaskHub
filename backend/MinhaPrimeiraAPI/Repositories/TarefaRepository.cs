@@ -41,6 +41,11 @@ public class TarefaRepository : ITarefaRepository
             tarefas = tarefas.Where(tarefa => tarefa.Etiquetas.Any(etiqueta => etiqueta.Id == consulta.EtiquetaId));
         }
 
+        if (consulta.ProjetoId is not null)
+        {
+            tarefas = tarefas.Where(tarefa => tarefa.ProjetoId == consulta.ProjetoId);
+        }
+
         tarefas = consulta.Prazo switch
         {
             FiltroPrazoTarefa.Vencidas => tarefas.Where(tarefa =>
@@ -59,6 +64,7 @@ public class TarefaRepository : ITarefaRepository
         var itens = await tarefas
             .Skip((consulta.Pagina - 1) * consulta.TamanhoPagina)
             .Take(consulta.TamanhoPagina)
+            .Include(tarefa => tarefa.Projeto)
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
@@ -117,6 +123,7 @@ public class TarefaRepository : ITarefaRepository
             .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(tarefa => tarefa.ExcluidaEm != null)
+            .Include(tarefa => tarefa.Projeto)
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
             .OrderByDescending(tarefa => tarefa.ExcluidaEm)
@@ -137,6 +144,7 @@ public class TarefaRepository : ITarefaRepository
         }
 
         return await consulta
+            .Include(tarefa => tarefa.Projeto)
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
             .FirstOrDefaultAsync(
@@ -149,6 +157,7 @@ public class TarefaRepository : ITarefaRepository
     {
         return await _context.Tarefas
             .IgnoreQueryFilters()
+            .Include(tarefa => tarefa.Projeto)
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
             .FirstOrDefaultAsync(

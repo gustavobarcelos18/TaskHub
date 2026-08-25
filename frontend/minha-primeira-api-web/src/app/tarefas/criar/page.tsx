@@ -22,9 +22,9 @@ export default function NovaTarefaPage() {
           <Box>
             <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
               <IconBotaoLink
-                href="/tarefas"
-                aria-label="Voltar para tarefas"
-                tooltip="Voltar para tarefas"
+                href="/"
+                aria-label="Voltar para o início"
+                tooltip="Voltar para o início"
                 sx={{ border: "1px solid", borderColor: "divider" }}
               >
                 <ArrowBackIcon />

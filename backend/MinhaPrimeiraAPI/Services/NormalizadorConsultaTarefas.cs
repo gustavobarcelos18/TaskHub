@@ -31,6 +31,7 @@ public static class NormalizadorConsultaTarefas
             Situacao = string.IsNullOrWhiteSpace(consulta.Situacao) ? null : NormalizarSituacao(consulta.Situacao),
             Prioridade = string.IsNullOrWhiteSpace(consulta.Prioridade) ? null : NormalizarPrioridade(consulta.Prioridade),
             EtiquetaId = NormalizarEtiquetaId(consulta.EtiquetaId),
+            ProjetoId = NormalizarProjetoId(consulta.ProjetoId),
             Prazo = NormalizarPrazo(consulta.Prazo),
             Hoje = hoje,
             OrdenarPor = NormalizarOrdenacao(consulta.OrdenarPor),
@@ -45,6 +46,13 @@ public static class NormalizadorConsultaTarefas
         if (etiquetaId is null) return null;
         if (etiquetaId <= 0) throw new ArgumentException("O ID da etiqueta deve ser maior que zero.", nameof(etiquetaId));
         return etiquetaId;
+    }
+
+    private static int? NormalizarProjetoId(int? projetoId)
+    {
+        if (projetoId is null) return null;
+        if (projetoId <= 0) throw new ArgumentException("O ID do projeto deve ser maior que zero.", nameof(projetoId));
+        return projetoId;
     }
 
     public static string NormalizarSituacao(string situacao)

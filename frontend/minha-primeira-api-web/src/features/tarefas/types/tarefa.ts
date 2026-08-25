@@ -24,16 +24,19 @@ export type Tarefa = {
   situacaoAlteradaEm: string;
   concluidaEm: string | null;
   excluidaEm: string | null;
+  projeto: Projeto | null;
   etiquetas: Etiqueta[];
 };
 
 export type Etiqueta = { id: number; nome: string };
+export type Projeto = { id: number; nome: string };
 
 export const TIPOS_HISTORICO_TAREFA = [
   "Criacao",
   "AlteracaoDescricao",
   "AlteracaoObservacoes",
   "AlteracaoEtiquetas",
+  "AlteracaoProjeto",
   "AlteracaoPrioridade",
   "AlteracaoDataVencimento",
   "AlteracaoSituacao",
@@ -63,6 +66,7 @@ export type ConsultaTarefas = {
   prioridade?: PrioridadeTarefa;
   prazo?: PrazoTarefa;
   etiquetaId?: number;
+  projetoId?: number;
   ordenarPor?: OrdenarTarefasPor;
   direcao?: DirecaoOrdenacao;
   pagina?: number;

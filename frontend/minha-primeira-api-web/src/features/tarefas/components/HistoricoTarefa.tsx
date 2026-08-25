@@ -12,6 +12,7 @@ const rotulosPorTipo: Record<TipoHistoricoTarefa, string> = {
   AlteracaoDescricao: "Descrição alterada",
   AlteracaoObservacoes: "Observações alteradas",
   AlteracaoEtiquetas: "Etiquetas alteradas",
+  AlteracaoProjeto: "Projeto alterado",
   AlteracaoPrioridade: "Prioridade alterada",
   AlteracaoDataVencimento: "Data de vencimento alterada",
   AlteracaoSituacao: "Situação alterada",
@@ -27,6 +28,7 @@ function formatarValor(item: HistoricoTarefaType, valor: string | null): string 
   }
   if (item.tipo === "AlteracaoPrioridade" && valor === "Media") return "Média";
   if (item.tipo === "AlteracaoDataVencimento") return formatarDataCivil(valor);
+  if (item.tipo === "AlteracaoProjeto" && valor === null) return "Sem projeto";
   return valor ?? (item.tipo === "AlteracaoObservacoes" ? "Sem observações" : "—");
 }
 

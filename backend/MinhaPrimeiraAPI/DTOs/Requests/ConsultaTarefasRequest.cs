@@ -7,6 +7,7 @@ public class ConsultaTarefasRequest
     public string? Prioridade { get; set; }
     public string? Prazo { get; set; }
     public int? EtiquetaId { get; set; }
+    public int? ProjetoId { get; set; }
     public string? OrdenarPor { get; set; }
     public string? Direcao { get; set; }
     public int? Pagina { get; set; }

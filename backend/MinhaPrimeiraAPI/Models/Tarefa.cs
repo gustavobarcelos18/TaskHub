@@ -24,5 +24,9 @@ public class Tarefa
 
     public DateTime? ExcluidaEm { get; set; }
 
+    public int? ProjetoId { get; set; }
+
+    public Projeto? Projeto { get; set; }
+
     public ICollection<Etiqueta> Etiquetas { get; set; } = new List<Etiqueta>();
 }

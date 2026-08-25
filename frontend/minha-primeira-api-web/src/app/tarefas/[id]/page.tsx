@@ -1,11 +1,18 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { Box, Chip, Container, Divider, Paper, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { IconBotaoLink } from "@/components/ComponentesRoteador";
-import { HistoricoTarefa } from "@/features/tarefas/components/HistoricoTarefa";
-import { IndicadorPrioridadeTarefa } from "@/features/tarefas/components/IndicadorPrioridadeTarefa";
-import { IndicadorSituacaoTarefa } from "@/features/tarefas/components/IndicadorSituacaoTarefa";
-import { buscarTarefa, listarHistoricoTarefa } from "@/features/tarefas/services/tarefa-service";
-import { formatarDataCivil, formatarDataHora } from "@/features/tarefas/utils/formatar-data";
+import { DetalhesTarefaConteudo } from "@/features/tarefas/components/DetalhesTarefaConteudo";
+import { buscarTarefa } from "@/features/tarefas/services/tarefa-service";
+
 type Props = { params: Promise<{ id: string }> };
-function Campo({ titulo, valor }: { titulo: string; valor: React.ReactNode }) { return <Stack spacing={0.5}><Typography variant="caption" color="text.secondary">{titulo}</Typography><Typography variant="body1" component="div">{valor}</Typography></Stack>; }
-export default async function DetalhesTarefaPage({ params }: Props) { const { id } = await params; const [tarefa, historico] = await Promise.all([buscarTarefa(Number(id)), listarHistoricoTarefa(Number(id))]); return <Box component="main" sx={{ minHeight: "100vh", bgcolor: "background.default", px: { xs: 2, sm: 4 }, py: { xs: 4, sm: 6 } }}><Container maxWidth="md"><Stack spacing={4}><Stack direction="row" spacing={2} sx={{ alignItems: "center" }}><IconBotaoLink href="/tarefas" aria-label="Voltar para tarefas" tooltip="Voltar para tarefas" sx={{ border: "1px solid", borderColor: "divider" }}><ArrowBackIcon /></IconBotaoLink><Box><Typography variant="h2" component="h1">Detalhes da tarefa</Typography><Typography variant="body2" color="text.secondary">Acompanhe as informações e as alterações registradas.</Typography></Box></Stack><Paper variant="outlined" sx={{ p: { xs: 2.5, sm: 3 } }}><Stack spacing={3}><Campo titulo="Descrição" valor={tarefa.descricao} /><Divider /><Campo titulo="Etiquetas" valor={tarefa.etiquetas.length ? <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>{tarefa.etiquetas.map((etiqueta) => <Chip key={etiqueta.id} label={etiqueta.nome} size="small" />)}</Box> : "Sem etiquetas."} /><Divider /><Campo titulo="Observações" valor={tarefa.observacoes ? <Box sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{tarefa.observacoes}</Box> : "Sem observações."} /><Divider /><Campo titulo="Situação" valor={<IndicadorSituacaoTarefa situacao={tarefa.situacao} />} /><Divider /><Campo titulo="Prioridade" valor={<IndicadorPrioridadeTarefa prioridade={tarefa.prioridade} />} /><Divider /><Campo titulo="Data de vencimento" valor={formatarDataCivil(tarefa.dataVencimento)} /><Divider /><Campo titulo="Criada em" valor={formatarDataHora(tarefa.criadaEm)} /><Campo titulo="Modificada em" valor={formatarDataHora(tarefa.modificadaEm)} /><Campo titulo="Finalizada em" valor={formatarDataHora(tarefa.concluidaEm)} /></Stack></Paper><Stack spacing={2}><Typography variant="h3" component="h2">Histórico</Typography><HistoricoTarefa historico={historico} /></Stack></Stack></Container></Box>; }
+
+export default async function DetalhesTarefaPage({ params }: Props) {
+  const { id } = await params;
+  const tarefa = await buscarTarefa(Number(id));
+
+  return <Box component="main" sx={{ minHeight: "100vh", bgcolor: "background.default", px: { xs: 2, sm: 4 }, py: { xs: 4, sm: 6 } }}><Container maxWidth="md"><Stack spacing={4}><Stack direction="row" spacing={2} sx={{ alignItems: "center" }}><IconBotaoLink href="/" aria-label="Voltar para o início" tooltip="Voltar para o início" sx={{ border: "1px solid", borderColor: "divider" }}><ArrowBackIcon /></IconBotaoLink><Box><Typography variant="h2" component="h1">Detalhes da tarefa</Typography><Typography variant="body2" color="text.secondary">Consulte as informações completas da tarefa.</Typography></Box></Stack><Paper variant="outlined" sx={{ p: { xs: 2.5, sm: 3 } }}><DetalhesTarefaConteudo tarefa={tarefa} /></Paper></Stack></Container></Box>;
+}

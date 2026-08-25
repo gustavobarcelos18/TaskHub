@@ -29,6 +29,7 @@ import { atualizarTarefa } from "../services/tarefa-service";
 import { PRIORIDADES_TAREFA, SITUACOES_TAREFA, type Tarefa } from "../types/tarefa";
 import { converterDataParaFormulario, mascararDataCivil } from "../utils/formatar-data";
 import { SeletorEtiquetas } from "./SeletorEtiquetas";
+import { SeletorProjeto } from "./SeletorProjeto";
 
 type DialogoEditarTarefaProps = {
   tarefa: Tarefa;
@@ -61,6 +62,7 @@ export function DialogoEditarTarefa({
       situacao: tarefa.situacao,
       prioridade: tarefa.prioridade,
       dataVencimento: converterDataParaFormulario(tarefa.dataVencimento),
+      projetoId: tarefa.projeto?.id ?? null,
       etiquetaIds: tarefa.etiquetas.map((etiqueta) => etiqueta.id),
     },
   });
@@ -156,6 +158,8 @@ export function DialogoEditarTarefa({
           />
 
           <SeletorEtiquetas control={control} />
+
+          <SeletorProjeto control={control} />
 
           <Controller
             name="prioridade"

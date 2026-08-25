@@ -27,5 +27,7 @@ public class CriarTarefaRequest
 
     public DateOnly? DataVencimento { get; set; }
 
+    public int? ProjetoId { get; set; }
+
     public List<int> EtiquetaIds { get; set; } = [];
 }

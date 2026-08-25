@@ -2,7 +2,60 @@
 
 Este arquivo registra, em ordem cronológica, as atividades realizadas no repositório a partir de 21/08/2026. Ele deve ser atualizado ao concluir cada tarefa ou etapa relevante, indicando o que foi alterado, como foi validado e pendências conhecidas.
 
+## 2026-08-24
+
+### Redesign da homepage — central de navegação
+
+- Os fluxos de detalhes e histórico passaram a abrir modais sobre a lista de seleção, sem redirecionamento. A visualização de detalhes foi extraída para `DetalhesTarefaConteudo`, reutilizada pelo modal e pela rota direta já existente; o modal de histórico reutiliza a timeline atual.
+- O acesso à grade de tarefas foi convertido de botão isolado para o quinto card da grade principal. A homepage passou a usar contêiner `xl` e padding externo mais compacto para aproveitar melhor o espaço da tela.
+- Ajustada a seta de retorno dos detalhes da tarefa para voltar à homepage, em vez da grade de tarefas.
+- Removida a seção de histórico da página de detalhes, eliminando a duplicidade com o fluxo dedicado de histórico. A página deixou de chamar o endpoint de auditoria nesse acesso.
+- Corrigida a navegação da página de criação: o botão de voltar agora retorna à homepage. A homepage também ganhou o botão explícito `Visualizar grade de tarefas`, que mantém o acesso à listagem geral separado do fluxo de criação.
+- A homepage deixou de carregar e apresentar indicadores estatísticos como conteúdo principal. Ela passou a oferecer quatro cards acessíveis e responsivos: criar tarefa, detalhes, editar e histórico.
+- Criada a rota única de seleção `/tarefas/selecionar/[modo]`, com busca textual, paginação, estados de carregamento/erro/lista vazia e uma listagem reduzida de tarefas. Detalhes encaminha para a página existente, edição reutiliza `DialogoEditarTarefa` e histórico reutiliza `listarHistoricoTarefa` e `HistoricoTarefa`.
+- Nenhum endpoint, banco, migration, service HTTP, tipo de contrato ou formulário foi duplicado ou alterado.
+- Validações: `npm run lint` e `npm run build` concluídos sem erros; backend com build sem avisos/erros e 95/95 testes aprovados. NÃO EXECUTADO VISUALMENTE.
+
+### Correção de runtime — carregamento de projetos
+
+- Diagnosticado o erro de `GET /api/projetos`: o log da API registrava `SQLite Error 1: 'no such table: PROJETOS'`. O banco de desenvolvimento tinha as migrations `AdicionarObservacoesTarefa`, `AdicionarEtiquetas` e `AdicionarProjetos` pendentes, enquanto a API já executava os endpoints e consultas correspondentes.
+- Aplicada a cadeia de migrations pendentes com `dotnet ef database update`, preservando o banco e seus registros; nenhum arquivo de código-fonte foi alterado.
+- Validação funcional contra a API já em execução: `GET /api/projetos`, `GET /api/etiquetas` e `GET /api/tarefas` retornaram HTTP 200; projetos e etiquetas vazios e as três tarefas existentes permaneceram acessíveis.
+- Validações: build do backend concluído com 0 avisos e 0 erros; testes `dotnet test --no-build` com 94/94 aprovados, 0 falhas e 0 ignorados; lint do frontend concluído sem erros.
+- Limitação: `npm run build` não pôde concluir porque o `next dev` existente mantém o lock de `.next` (`Another next build process is already running`); o processo não foi encerrado. NÃO EXECUTADO VISUALMENTE.
+
+### Diagnóstico de cadastro de tarefa com projeto
+
+- Confirmado no log do `POST /api/tarefas` o erro SQLite `UNIQUE constraint failed: PROJETOS.ID`. Ao criar tarefa com projeto, `ProjetoRepository.BuscarPorIdAsync` retorna a entidade sem tracking; em seguida, `TarefaRepository.Adicionar` adiciona o grafo inteiro e o EF tenta inserir novamente o projeto já existente.
+- A criação de tarefa sem projeto não é afetada. A correção indicada é associar o projeto já rastreado ou definir apenas a FK `ProjetoId` depois da validação, preservando a resposta e o histórico atuais. Nenhum código ou dado foi alterado nesta etapa de diagnóstico.
+
+### Correção de cadastro de tarefa com projeto
+
+- `TarefaService.ObterProjetoAsync` passou a buscar o projeto com tracking quando ele é associado à criação ou atualização de uma tarefa. Assim, `TarefaRepository.Adicionar` persiste somente a nova tarefa e sua associação, sem tentar inserir novamente o projeto existente.
+- Adicionado teste SQLite para criar tarefa com projeto e etiqueta existentes, verificando a preservação de um único projeto, a associação do projeto e da etiqueta na tarefa criada.
+- Validação: a compilação isolada do backend e dos testes concluiu com 0 avisos e 0 erros. A execução dos testes não concluiu no executor após iniciar a descoberta, e o build padrão ficou bloqueado pela API de desenvolvimento existente, que mantém `MinhaPrimeiraAPI.exe` e `.dll` abertos; o processo não foi encerrado. O diretório temporário `TempValidation` criado para a compilação permanece pendente de limpeza porque a remoção foi bloqueada pela política do executor. NÃO EXECUTADO VISUALMENTE.
+
+### Ajuste visual — listagem de tarefas
+
+- Ampliado o contêiner da página de tarefas de `lg` para `xl`, reduzido o espaçamento vertical e reorganizados os filtros para preencher a largura disponível e quebrar de linha de forma responsiva.
+- A tabela deixou de usar altura fixa de 610 px: ela agora tem altura calculada a partir da quantidade de linhas visíveis, com mínimo de 260 px e máximo de 620 px. A listagem deixa de exibir uma grande área vazia com poucos registros e mantém rolagem para páginas maiores.
+- Validação: a tentativa de `npm run lint` não retornou resultado final no executor. `npm run build` não foi executado porque o processo `next dev` ativo mantém o lock de `.next`. NÃO EXECUTADO VISUALMENTE.
+
+### Ajuste de escopo do diário
+
+- A regra foi refinada: o diário passa a registrar somente tarefas, alterações, decisões e etapas relevantes.
+- Atividades rotineiras ou sem impacto relevante não precisam ser incluídas; os registros devem permanecer concisos.
+- Validação: atualizada a seção 16 do `AGENTS.md` e relido este registro.
+
 ## 2026-08-21
+
+### Sprint 16 — Projetos/Listas e agrupamento principal de tarefas
+
+- Adicionado o domínio `Projeto` (`Id`, `Nome`, `NomeNormalizado`), com nome obrigatório de até 100 caracteres, trim, normalização invariável em maiúsculas e índice único. Foram incluídos `GET/POST/DELETE /api/projetos`; o delete não remove tarefas.
+- Criada a relação opcional `Projeto 1:N Tarefa` por `TAREFAS.PROJETO_ID`, índice na FK e `ON DELETE SET NULL`. Os contratos de tarefa agora recebem `projetoId`, respondem com `projeto`, filtram por `projetoId` antes de ordenar/paginar e registram `AlteracaoProjeto` com os nomes no histórico. A criação com projeto gera somente o evento de criação.
+- Atualizado o frontend com seleção única, criação e gerenciamento contextual de projetos, opção de limpar a associação, filtro persistido na URL, coluna na listagem, detalhes e timeline.
+- Validações: baseline 92/92; validação final com build backend sem avisos/erros e 94/94 testes aprovados, lint e build frontend aprovados. Testes SQLite cobrem unicidade, ordenação, `SET NULL` preservando tarefa e combinação de projeto com etiqueta antes da paginação. A migration `20260821164100_AdicionarProjetos` foi aplicada com sucesso em banco vazio e em banco isolado migrado da Sprint 15.
+- Limitações: teste HTTP funcional A–N e validação visual não foram executados nesta sessão. Bancos isolados de migration permanecem em `TempSprint16` para limpeza manual.
 
 ### Sprint 15 — Etiquetas e organização por classificação
 

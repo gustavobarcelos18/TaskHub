@@ -28,6 +28,7 @@ import { criarTarefa } from "../services/tarefa-service";
 import { PRIORIDADES_TAREFA, SITUACOES_TAREFA } from "../types/tarefa";
 import { mascararDataCivil } from "../utils/formatar-data";
 import { SeletorEtiquetas } from "./SeletorEtiquetas";
+import { SeletorProjeto } from "./SeletorProjeto";
 
 export function FormularioTarefa() {
   const router = useRouter();
@@ -48,6 +49,7 @@ export function FormularioTarefa() {
       situacao: "Pendente",
       prioridade: "Media",
       dataVencimento: "",
+      projetoId: null,
       etiquetaIds: [],
     },
   });
@@ -147,6 +149,8 @@ export function FormularioTarefa() {
         />
 
         <SeletorEtiquetas control={control} />
+
+        <SeletorProjeto control={control} />
 
         <Controller
           name="dataVencimento"

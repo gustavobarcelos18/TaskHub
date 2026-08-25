@@ -87,6 +87,7 @@ export async function listarTarefas(
   if (consulta.prioridade) parametros.set("prioridade", consulta.prioridade);
   if (consulta.prazo) parametros.set("prazo", consulta.prazo);
   if (consulta.etiquetaId) parametros.set("etiquetaId", String(consulta.etiquetaId));
+  if (consulta.projetoId) parametros.set("projetoId", String(consulta.projetoId));
   if (consulta.ordenarPor) parametros.set("ordenarPor", consulta.ordenarPor);
   if (consulta.direcao) parametros.set("direcao", consulta.direcao);
   if (consulta.pagina) parametros.set("pagina", String(consulta.pagina));

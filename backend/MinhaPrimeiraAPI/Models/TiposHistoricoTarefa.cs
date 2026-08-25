@@ -6,6 +6,7 @@ public static class TiposHistoricoTarefa
     public const string AlteracaoDescricao = "AlteracaoDescricao";
     public const string AlteracaoObservacoes = "AlteracaoObservacoes";
     public const string AlteracaoEtiquetas = "AlteracaoEtiquetas";
+    public const string AlteracaoProjeto = "AlteracaoProjeto";
     public const string AlteracaoPrioridade = "AlteracaoPrioridade";
     public const string AlteracaoDataVencimento = "AlteracaoDataVencimento";
     public const string AlteracaoSituacao = "AlteracaoSituacao";

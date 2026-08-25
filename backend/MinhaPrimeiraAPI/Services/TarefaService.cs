@@ -13,17 +13,20 @@ public class TarefaService : ITarefaService
     private readonly ILogger<TarefaService> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly IEtiquetaRepository? _etiquetaRepository;
+    private readonly IProjetoRepository? _projetoRepository;
 
     public TarefaService(
         ITarefaRepository tarefaRepository,
         ILogger<TarefaService> logger,
         TimeProvider timeProvider,
-        IEtiquetaRepository? etiquetaRepository = null)
+        IEtiquetaRepository? etiquetaRepository = null,
+        IProjetoRepository? projetoRepository = null)
     {
         _tarefaRepository = tarefaRepository;
         _logger = logger;
         _timeProvider = timeProvider;
         _etiquetaRepository = etiquetaRepository;
+        _projetoRepository = projetoRepository;
     }
 
     public async Task<TarefasPaginadasResponse> ListarAsync(
@@ -150,6 +153,7 @@ public class TarefaService : ITarefaService
         };
 
         tarefa.Etiquetas = await ObterEtiquetasAsync(novaTarefa.EtiquetaIds, cancellationToken);
+        tarefa.Projeto = await ObterProjetoAsync(novaTarefa.ProjetoId, cancellationToken);
 
         _tarefaRepository.Adicionar(tarefa);
         _tarefaRepository.AdicionarHistorico(CriarHistorico(tarefa, TiposHistoricoTarefa.Criacao, agora));
@@ -217,12 +221,14 @@ public class TarefaService : ITarefaService
 
         var prioridadeAlterada = !string.Equals(tarefaEncontrada.Prioridade, novaPrioridade, StringComparison.Ordinal);
         var dataVencimentoAlterada = tarefaEncontrada.DataVencimento != dadosAtualizados.DataVencimento;
+        var novoProjeto = await ObterProjetoAsync(dadosAtualizados.ProjetoId, cancellationToken);
+        var projetoAlterado = tarefaEncontrada.ProjetoId != novoProjeto?.Id;
         var novasEtiquetas = await ObterEtiquetasAsync(dadosAtualizados.EtiquetaIds, cancellationToken);
         var etiquetasAnteriores = FormatarEtiquetas(tarefaEncontrada.Etiquetas);
         var etiquetasNovas = FormatarEtiquetas(novasEtiquetas);
         var etiquetasAlteradas = !string.Equals(etiquetasAnteriores, etiquetasNovas, StringComparison.Ordinal);
 
-        if (!descricaoAlterada && !observacoesAlteradas && !situacaoAlterada && !prioridadeAlterada && !dataVencimentoAlterada && !etiquetasAlteradas)
+        if (!descricaoAlterada && !observacoesAlteradas && !situacaoAlterada && !prioridadeAlterada && !dataVencimentoAlterada && !projetoAlterado && !etiquetasAlteradas)
         {
             _logger.LogInformation(
                 "Atualização ignorada porque não houve alterações. TarefaId={TarefaId}",
@@ -239,6 +245,7 @@ public class TarefaService : ITarefaService
         var observacoesAnteriores = tarefaEncontrada.Observacoes;
         var prioridadeAnterior = tarefaEncontrada.Prioridade;
         var dataVencimentoAnterior = tarefaEncontrada.DataVencimento;
+        var nomeProjetoAnterior = tarefaEncontrada.Projeto?.Nome;
 
         if (descricaoAlterada)
         {
@@ -279,6 +286,13 @@ public class TarefaService : ITarefaService
         {
             tarefaEncontrada.DataVencimento = dadosAtualizados.DataVencimento;
             _tarefaRepository.AdicionarHistorico(CriarHistorico(tarefaEncontrada, TiposHistoricoTarefa.AlteracaoDataVencimento, agora, "DataVencimento", FormatarDataVencimento(dataVencimentoAnterior), FormatarDataVencimento(dadosAtualizados.DataVencimento)));
+        }
+
+        if (projetoAlterado)
+        {
+            tarefaEncontrada.Projeto = novoProjeto;
+            tarefaEncontrada.ProjetoId = novoProjeto?.Id;
+            _tarefaRepository.AdicionarHistorico(CriarHistorico(tarefaEncontrada, TiposHistoricoTarefa.AlteracaoProjeto, agora, "Projeto", nomeProjetoAnterior, novoProjeto?.Nome));
         }
 
         if (situacaoAlterada)
@@ -563,6 +577,7 @@ public class TarefaService : ITarefaService
             SituacaoAlteradaEm = tarefa.SituacaoAlteradaEm,
             ConcluidaEm = tarefa.ConcluidaEm,
             ExcluidaEm = tarefa.ExcluidaEm,
+            Projeto = tarefa.Projeto is null ? null : new ProjetoResponse { Id = tarefa.Projeto.Id, Nome = tarefa.Projeto.Nome },
             Etiquetas = tarefa.Etiquetas.OrderBy(etiqueta => etiqueta.Nome).ThenBy(etiqueta => etiqueta.Id).Select(etiqueta => new EtiquetaResponse { Id = etiqueta.Id, Nome = etiqueta.Nome }).ToList()
         };
     }
@@ -577,6 +592,15 @@ public class TarefaService : ITarefaService
         var etiquetas = await _etiquetaRepository.BuscarPorIdsAsync(ids, cancellationToken);
         if (etiquetas.Count != ids.Count) throw new ArgumentException("Uma ou mais etiquetas informadas não existem.", nameof(idsRecebidos));
         return etiquetas.OrderBy(etiqueta => etiqueta.Nome).ThenBy(etiqueta => etiqueta.Id).ToList();
+    }
+
+    private async Task<Projeto?> ObterProjetoAsync(int? projetoId, CancellationToken cancellationToken)
+    {
+        if (projetoId is null) return null;
+        if (projetoId <= 0) throw new ArgumentException("O ID do projeto deve ser maior que zero.", nameof(projetoId));
+        if (_projetoRepository is null) throw new ArgumentException("Não foi possível validar o projeto informado.", nameof(projetoId));
+        return await _projetoRepository.BuscarPorIdAsync(projetoId.Value, rastrearAlteracoes: true, cancellationToken: cancellationToken)
+            ?? throw new ArgumentException("O projeto informado não existe.", nameof(projetoId));
     }
 
     private static string FormatarEtiquetas(IEnumerable<Etiqueta> etiquetas) => JsonSerializer.Serialize(etiquetas.OrderBy(etiqueta => etiqueta.Nome).ThenBy(etiqueta => etiqueta.Id).Select(etiqueta => etiqueta.Nome));

@@ -123,6 +123,6 @@ Não trate esses níveis como equivalentes.
 
 ## 16. Diário de trabalho
 
-- Mantenha o arquivo `DIARIO.md` atualizado a cada tarefa ou etapa relevante concluída.
-- Registre a data, as alterações e atualizações realizadas, as validações executadas e eventuais pendências ou limitações.
-- Não omita alterações feitas no repositório durante o trabalho. Preserve os registros anteriores e adicione novos itens em ordem cronológica.
+- Mantenha o arquivo `DIARIO.md` atualizado ao concluir tarefas, alterações, decisões ou etapas relevantes.
+- Registre de forma concisa a data, as alterações ou atualizações relevantes, as validações executadas e eventuais pendências ou limitações.
+- Não é necessário registrar atividades rotineiras ou alterações sem impacto relevante. Preserve os registros anteriores e adicione novos itens em ordem cronológica.

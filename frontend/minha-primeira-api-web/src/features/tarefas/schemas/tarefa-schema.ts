@@ -31,6 +31,7 @@ export const tarefaSchema = z.object({
     (valor) => valor === "" || ehDataCivilValida(valor),
     "Informe uma data v\u00e1lida no formato dd/mm/aaaa.",
   ),
+  projetoId: z.number().int().positive().nullable(),
   etiquetaIds: z.array(z.number().int().positive()),
 });
 
