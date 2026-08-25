@@ -206,5 +206,3 @@ Os testes backend cobrem regras de service e consultas de repository com SQLite 
 
 - [Backend: operação, ambientes, migrations e contrato HTTP](backend/README.md)
 - [Frontend: configuração, comandos e integração HTTP](frontend/minha-primeira-api-web/README.md)
-- [Diário de trabalho](DIARIO.md)
-- [Regras de engenharia do repositório](AGENTS.md)
