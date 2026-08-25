@@ -3,8 +3,11 @@ import "./globals.css";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Gerenciador de Tarefas",
+  title: "TaskHub",
   description: "Sistema de gerenciamento de tarefas.",
+  icons: {
+    icon: "/favicon_gerenciador_tarefas.ico",
+  },
 };
 
 type RootLayoutProps = Readonly<{

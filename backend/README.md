@@ -27,7 +27,31 @@ Em Development, o Swagger UI está em `http://localhost:5025/swagger` e o docume
 
 No startup, `ConnectionStrings:DefaultConnection` precisa estar preenchida e informar `Data Source`; `Cors:AllowedOrigins` precisa conter ao menos uma URL HTTP/HTTPS absoluta. Falhas encerram o startup com uma mensagem clara no log. O diretório do SQLite é criado quando necessário; o banco em si continua sendo criado somente por migrations.
 
-O padrão de CORS é `http://localhost:3000`, sem `AllowAnyOrigin`. Para outro ambiente, defina por exemplo `Cors__AllowedOrigins__0=https://app.exemplo.com` e mantenha uma lista explícita de origens.
+O padrão de CORS em desenvolvimento é `http://localhost:3000`, sem `AllowAnyOrigin`. Para outro ambiente, defina por exemplo `Cors__AllowedOrigins__0=https://app.exemplo.com` e mantenha uma lista explícita de origens.
+
+### Ambientes
+
+O host do ASP.NET Core carrega `appsettings.json` e, em seguida, o arquivo `appsettings.{ASPNETCORE_ENVIRONMENT}.json`; o segundo prevalece sobre o primeiro. O repositório possui os seguintes ambientes:
+
+| Ambiente | Arquivo | Uso e comportamento |
+| --- | --- | --- |
+| `Development` | `appsettings.Development.json` | Uso local. Configura SQLite em `Database/tarefas.db`, CORS para `http://localhost:3000` e host `localhost`. |
+| `Homologation` | `appsettings.Homologation.json` | Validação prévia à produção. Exige que conexão, CORS e hosts sejam fornecidos pela infraestrutura. |
+| `Production` | `appsettings.Production.json` | Ambiente produtivo. Também exige esses valores fora do repositório. |
+
+Homologação e Produção deixam `DefaultConnection` e `Cors:AllowedOrigins` propositalmente vazios. Assim, o fail-fast existente impede o uso de um banco ou frontend local por engano. Não inclua URLs definitivas, caminhos de volume, credenciais ou segredos nesses arquivos versionados.
+
+Exemplo de inicialização em Homologação no PowerShell:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = "Homologation"
+$env:ConnectionStrings__DefaultConnection = "Data Source=C:\dados\projetotarefas-hml\tarefas.db"
+$env:Cors__AllowedOrigins__0 = "https://hml.app.exemplo.com"
+$env:AllowedHosts = "hml.api.exemplo.com"
+dotnet run --no-launch-profile --project backend/MinhaPrimeiraAPI
+```
+
+O `--no-launch-profile` é necessário nesse exemplo porque `Properties/launchSettings.json` é destinado à execução local e define `Development`. Para Produção, use `ASPNETCORE_ENVIRONMENT=Production` e valores equivalentes apontando para o volume persistente e os domínios produtivos. Se houver mais de uma origem permitida, informe índices adicionais, como `Cors__AllowedOrigins__1`. Em servidores, cadastre essas variáveis no mecanismo de configuração da plataforma, e não em scripts ou arquivos versionados.
 
 ### Migrations e ambiente novo
 
@@ -63,9 +87,9 @@ Serilog grava no console e em `Logs/api-.log`, com arquivo diário, rotação po
 
 ## Configuração, CORS e banco
 
-A chave `ConnectionStrings:DefaultConnection` de `appsettings.json` aponta, por padrão, para o SQLite `Database/tarefas.db` relativo ao projeto backend. Configurações ASP.NET Core podem ser sobrescritas por variáveis de ambiente, como `ConnectionStrings__DefaultConnection`. Não inclua segredos em arquivos versionados.
+A chave `ConnectionStrings:DefaultConnection` de `appsettings.Development.json` aponta, por padrão, para o SQLite `Database/tarefas.db` relativo ao projeto backend. Configurações ASP.NET Core podem ser sobrescritas por variáveis de ambiente, como `ConnectionStrings__DefaultConnection`. Não inclua segredos em arquivos versionados.
 
-`Cors:AllowedOrigins` define as origens permitidas; o padrão é `http://localhost:3000`, compatível com o frontend Next.js. Altere essa configuração por ambiente se a origem do frontend mudar. A política não usa `AllowAnyOrigin`.
+`Cors:AllowedOrigins` define as origens permitidas; o padrão de Development é `http://localhost:3000`, compatível com o frontend Next.js. Altere essa configuração por ambiente se a origem do frontend mudar. A política não usa `AllowAnyOrigin`.
 
 O aplicativo não aplica migrations automaticamente. Para aplicar a cadeia existente:
 

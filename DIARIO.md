@@ -2,7 +2,31 @@
 
 Este arquivo registra, em ordem cronológica, as atividades realizadas no repositório a partir de 21/08/2026. Ele deve ser atualizado ao concluir cada tarefa ou etapa relevante, indicando o que foi alterado, como foi validado e pendências conhecidas.
 
+## 2026-08-25
+
+### Configuração por ambiente do backend
+
+- Separadas as configurações do ASP.NET Core em `appsettings.Development.json`, `appsettings.Homologation.json` e `appsettings.Production.json`. Desenvolvimento preserva o SQLite e o frontend locais; Homologação e Produção não possuem banco, origem CORS ou host concretos versionados.
+- Os ambientes Homologation e Production exigem `ConnectionStrings__DefaultConnection`, `Cors__AllowedOrigins__0` e `AllowedHosts` configurados pela infraestrutura. As validações de startup existentes impedem o início sem conexão ou CORS explícito.
+- Atualizado o README operacional do backend com a precedência dos arquivos, diferenças entre ambientes e exemplo de configuração via variáveis de ambiente no PowerShell.
+- Validação: baseline e validação final com build backend concluído com 0 avisos e 0 erros e 95/95 testes aprovados (0 falhas, 0 ignorados). JSONs validados pelo PowerShell; em `Production`, sem configurações externas e sem perfil de lançamento, o startup encerrou como esperado por falta de `DefaultConnection`. NÃO EXECUTADO VISUALMENTE.
+
 ## 2026-08-24
+
+### Ajuste do favicon
+
+- O favicon configurado passou a usar `public/favicon_gerenciador_tarefas.ico`, substituindo a imagem PNG usada anteriormente.
+- Validação: `npm run lint` executado após a alteração. NÃO EXECUTADO VISUALMENTE.
+
+### Nome do projeto
+
+- A marca exibida na página inicial e o título da aplicação foram atualizados para `TaskHub`.
+- Validação: `npm run lint` e `npm run build` executados após a alteração. NÃO EXECUTADO VISUALMENTE.
+
+### Atualização da identidade visual
+
+- Configurado o favicon do App Router para usar a imagem de checklist fornecida em `public/29e5b17a-aed4-4329-896a-29412f98891f.png`, substituindo visualmente o ícone padrão do Next.js nas abas do navegador.
+- Validação: `npm run lint` e `npm run build` concluídos sem erros. NÃO EXECUTADO VISUALMENTE.
 
 ### Redesign da homepage — central de navegação
 
