@@ -24,8 +24,7 @@ import {
 } from "../schemas/tarefa-schema";
 
 import { criarTarefa } from "../services/tarefa-service";
-
-const situacoes = ["Pendente", "Em andamento", "Concluída"] as const;
+import { SITUACOES_TAREFA } from "../types/tarefa";
 
 export function FormularioTarefa() {
   const router = useRouter();
@@ -53,7 +52,6 @@ export function FormularioTarefa() {
       await criarTarefa(dados);
 
       router.push("/tarefas");
-      router.refresh();
     } catch (erro) {
       const mensagem =
         erro instanceof Error
@@ -109,7 +107,7 @@ export function FormularioTarefa() {
               helperText={errors.situacao?.message}
               fullWidth
             >
-              {situacoes.map((situacao) => (
+              {SITUACOES_TAREFA.map((situacao) => (
                 <MenuItem key={situacao} value={situacao}>
                   {situacao}
                 </MenuItem>

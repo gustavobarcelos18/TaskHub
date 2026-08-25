@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const LIMITE_DESCRICAO_TAREFA = 50;
+import { SITUACOES_TAREFA } from "../types/tarefa";
+
+export const LIMITE_DESCRICAO_TAREFA = 200;
 
 export const tarefaSchema = z.object({
   descricao: z
@@ -12,7 +14,7 @@ export const tarefaSchema = z.object({
       `A descrição deve ter no máximo ${LIMITE_DESCRICAO_TAREFA} caracteres.`,
     ),
 
-  situacao: z.enum(["Pendente", "Em andamento", "Concluída"], {
+  situacao: z.enum(SITUACOES_TAREFA, {
     message: "Selecione uma situação válida.",
   }),
 });

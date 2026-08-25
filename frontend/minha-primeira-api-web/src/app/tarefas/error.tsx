@@ -1,7 +1,5 @@
 "use client";
 
-import { startTransition } from "react";
-import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -15,13 +13,8 @@ type TarefasErrorProps = {
 };
 
 export default function TarefasError({ reset }: TarefasErrorProps) {
-  const router = useRouter();
-
   function tentarNovamente() {
-    startTransition(() => {
-      router.refresh();
-      reset();
-    });
+    reset();
   }
 
   return (

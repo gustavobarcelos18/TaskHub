@@ -27,17 +27,12 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { excluirTarefa } from "../services/tarefa-service";
 import type { Tarefa } from "../types/tarefa";
 import { DialogoEditarTarefa } from "./DialogoEditarTarefa";
-import { FeedbackSucesso } from "./FeedbackSucesso";
 
 type MenuAcoesTarefaProps = {
   tarefa: Tarefa;
-  onTarefaExcluida?: () => void;
 };
 
-export function MenuAcoesTarefa({
-  tarefa,
-  onTarefaExcluida,
-}: MenuAcoesTarefaProps) {
+export function MenuAcoesTarefa({ tarefa }: MenuAcoesTarefaProps) {
   const router = useRouter();
 
   const [ancoraMenu, setAncoraMenu] = useState<null | HTMLElement>(null);
@@ -49,8 +44,6 @@ export function MenuAcoesTarefa({
   const [excluindo, setExcluindo] = useState(false);
 
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
-
-  const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
 
   function abrirMenu(evento: React.MouseEvent<HTMLElement>) {
     setAncoraMenu(evento.currentTarget);
@@ -81,8 +74,6 @@ export function MenuAcoesTarefa({
       await excluirTarefa(tarefa.id);
 
       setDialogoExclusaoAberto(false);
-      setMensagemSucesso("Tarefa excluída com sucesso.");
-      onTarefaExcluida?.();
       router.refresh();
     } catch (erro) {
       const mensagem =
@@ -142,12 +133,11 @@ export function MenuAcoesTarefa({
 
       <Dialog
         open={dialogoExclusaoAberto}
-        onClose={(_, razao) => {
-          if (razao === "backdropClick" && excluindo) return;
-          if (excluindo) return;
-
-          setDialogoExclusaoAberto(false);
-          setErroExclusao(null);
+        onClose={() => {
+          if (!excluindo) {
+            setDialogoExclusaoAberto(false);
+            setErroExclusao(null);
+          }
         }}
         aria-labelledby="dialogo-exclusao-titulo"
         aria-describedby="dialogo-exclusao-descricao"
@@ -178,9 +168,8 @@ export function MenuAcoesTarefa({
 
             <DialogContentText id="dialogo-exclusao-descricao" component="div">
               <Typography component="span" variant="body2">
-                A tarefa <strong>“{tarefa.descricao}”</strong> será removida da
-                listagem ativa e enviada para a lixeira. Ela poderá ser
-                restaurada posteriormente.
+                A tarefa <strong>“{tarefa.descricao}”</strong> deixará de aparecer
+                na listagem ativa.
               </Typography>
             </DialogContentText>
           </Box>
@@ -221,11 +210,6 @@ export function MenuAcoesTarefa({
         </DialogActions>
       </Dialog>
 
-      <FeedbackSucesso
-        aberto={Boolean(mensagemSucesso)}
-        mensagem={mensagemSucesso}
-        onFechar={() => setMensagemSucesso(null)}
-      />
     </>
   );
 }

@@ -1,4 +1,10 @@
-export type SituacaoTarefa = "Pendente" | "Em andamento" | "Concluída";
+export const SITUACOES_TAREFA = [
+  "Pendente",
+  "Em andamento",
+  "Concluída",
+] as const;
+
+export type SituacaoTarefa = (typeof SITUACOES_TAREFA)[number];
 
 export type Tarefa = {
   id: number;

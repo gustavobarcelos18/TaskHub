@@ -265,6 +265,51 @@ public sealed class TarefaServiceTests
     }
 
     [Fact]
+    public async Task CriarAsync_SituacaoComCapitalizacaoDiferente_DeveSalvarValorCanonico()
+    {
+        // Arrange
+        var tarefaRepository = new TarefaRepositoryFake();
+        var tarefaService = CriarService(tarefaRepository);
+
+        var request = new CriarTarefaRequest
+        {
+            Descricao = "Finalizar atividade",
+            Situacao = "concluída"
+        };
+
+        // Act
+        var resultado = await tarefaService.CriarAsync(request);
+
+        // Assert
+        Assert.Equal("Concluída", resultado.Situacao);
+        Assert.NotNull(resultado.ConcluidaEm);
+    }
+
+    [Fact]
+    public async Task CriarAsync_SituacaoInvalida_NaoDevePersistir()
+    {
+        // Arrange
+        var tarefaRepository = new TarefaRepositoryFake();
+        var tarefaService = CriarService(tarefaRepository);
+
+        var request = new CriarTarefaRequest
+        {
+            Descricao = "Finalizar atividade",
+            Situacao = "Cancelada"
+        };
+
+        // Act
+        var excecao = await Assert.ThrowsAsync<ArgumentException>(
+            () => tarefaService.CriarAsync(request)
+        );
+
+        // Assert
+        Assert.Equal("situacao", excecao.ParamName);
+        Assert.Equal(0, tarefaRepository.QuantidadeChamadasAdicionar);
+        Assert.Equal(0, tarefaRepository.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
     public async Task AtualizarAsync_TarefaInexistente_DeveRetornarNullENaoSalvar()
     {
         // Arrange

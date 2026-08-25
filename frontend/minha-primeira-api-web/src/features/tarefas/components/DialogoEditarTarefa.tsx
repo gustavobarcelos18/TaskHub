@@ -25,9 +25,7 @@ import {
 } from "../schemas/tarefa-schema";
 
 import { atualizarTarefa } from "../services/tarefa-service";
-import type { Tarefa } from "../types/tarefa";
-
-const situacoes = ["Pendente", "Em andamento", "Concluída"] as const;
+import { SITUACOES_TAREFA, type Tarefa } from "../types/tarefa";
 
 type DialogoEditarTarefaProps = {
   tarefa: Tarefa;
@@ -79,8 +77,7 @@ export function DialogoEditarTarefa({
   return (
     <Dialog
       open={open}
-      onClose={(_, razao) => {
-        if (razao === "backdropClick" && isSubmitting) return;
+      onClose={() => {
         if (!isSubmitting) {
           onOpenChange(false);
         }
@@ -150,7 +147,7 @@ export function DialogoEditarTarefa({
                 helperText={errors.situacao?.message}
                 fullWidth
               >
-                {situacoes.map((situacao) => (
+                {SITUACOES_TAREFA.map((situacao) => (
                   <MenuItem key={situacao} value={situacao}>
                     {situacao}
                   </MenuItem>

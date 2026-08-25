@@ -110,7 +110,7 @@ public class TarefaService : ITarefaService
             dadosAtualizados.Descricao.Trim();
 
         var novaSituacao =
-            dadosAtualizados.Situacao.Trim();
+            NormalizarSituacao(dadosAtualizados.Situacao);
 
         var descricaoAlterada =
             !string.Equals(
@@ -252,7 +252,32 @@ public class TarefaService : ITarefaService
     {
         return string.IsNullOrWhiteSpace(situacao)
             ? "Pendente"
-            : situacao.Trim();
+            : NormalizarSituacao(situacao);
+    }
+
+    private static string NormalizarSituacao(string situacao)
+    {
+        var situacaoNormalizada = situacao.Trim();
+
+        if (string.Equals(situacaoNormalizada, "Pendente", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Pendente";
+        }
+
+        if (string.Equals(situacaoNormalizada, "Em andamento", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Em andamento";
+        }
+
+        if (string.Equals(situacaoNormalizada, "Concluída", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Concluída";
+        }
+
+        throw new ArgumentException(
+            "A situação da tarefa é inválida.",
+            nameof(situacao)
+        );
     }
 
     private static bool EstaConcluida(
