@@ -4,6 +4,18 @@ Este arquivo registra, em ordem cronológica, as atividades realizadas no reposi
 
 ## 2026-08-25
 
+### Higiene de arquivos versionados
+
+- Atualizado o `.gitignore` para ignorar agentes e skills locais (`.agents/`), artefatos auxiliares do SQLite, arquivos `.env.*`, caches do Next.js/TypeScript e saídas comuns de cobertura de testes.
+- A skill local `.agents/skills/sprint-engineering/SKILL.md`, anteriormente rastreada, foi removida somente do índice do Git e permanece no disco; ela será excluída do repositório no próximo commit.
+- Validação: `git check-ignore --no-index` confirmou as regras para a skill, `.env.local` e banco SQLite local. Nenhum arquivo local foi apagado.
+
+### Atualização da documentação principal
+
+- Atualizado o `README.md` da raiz para refletir o TaskHub atual: recursos de tarefas, projetos, etiquetas, lixeira, histórico, paginação, contrato HTTP, configuração por ambiente, migrations e validação.
+- Mantida a documentação arquitetural e a separação de responsabilidades; os READMEs do backend e frontend continuam como referências detalhadas de operação e contrato.
+- Validação: links internos e comandos referenciados conferidos contra a estrutura atual do repositório; validação de código não se aplica, pois não houve alteração funcional. NÃO EXECUTADO VISUALMENTE.
+
 ### Configuração por ambiente do backend
 
 - Separadas as configurações do ASP.NET Core em `appsettings.Development.json`, `appsettings.Homologation.json` e `appsettings.Production.json`. Desenvolvimento preserva o SQLite e o frontend locais; Homologação e Produção não possuem banco, origem CORS ou host concretos versionados.

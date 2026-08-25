@@ -1,1275 +1,210 @@
-# Documentação Funcional e Técnica — ProjetoTarefas
+# TaskHub
 
-> Esta documentação histórica descreve a evolução do projeto. Para configuração e consumo do contrato atual, use o [README do backend](backend/README.md) e o [README do frontend](frontend/minha-primeira-api-web/README.md), que são a referência operacional.
+Aplicação web para organizar tarefas, projetos e etiquetas. O projeto é formado por um frontend Next.js e uma API ASP.NET Core, que se comunicam por HTTP/JSON e persistem os dados em SQLite.
 
-## 1. Visão Geral
+Esta página apresenta o estado atual do projeto e o fluxo de desenvolvimento. Os detalhes operacionais e o contrato HTTP completo estão nos READMEs do [backend](backend/README.md) e do [frontend](frontend/minha-primeira-api-web/README.md).
 
-* [ ] 
+## Visão geral
 
-A arquitetura está dividida em duas aplicações independentes:
+O TaskHub permite criar, consultar, editar e organizar tarefas, incluindo:
 
-```text
-ProjetoTarefas
-├── frontend
-│   └── Next.js + React + TypeScript + Material UI
-│
-└── backend
-    └── ASP.NET Core + Entity Framework Core + SQLite
-```
+- Situação: `Pendente`, `Em andamento` e `Concluída`.
+- Prioridade: `Baixa`, `Media` e `Alta` (`Media` é exibida como “Média” na interface).
+- Data de vencimento como data civil, sem conversão de fuso horário.
+- Observações opcionais com suporte a múltiplas linhas.
+- Associação opcional a um projeto e a múltiplas etiquetas.
+- Busca, filtros, ordenação e paginação feitos pela API.
+- Histórico auditável das alterações relevantes.
+- Exclusão lógica, lixeira, restauração e exclusão permanente controlada.
+- Health check para verificação operacional do backend.
 
-O fluxo geral da aplicação é:
+## Arquitetura
 
 ```text
 Usuário
    ↓
-Frontend Next.js
+Frontend Next.js / React
    ↓ HTTP/JSON
 API ASP.NET Core
    ↓
-Controller
-   ↓
-Service
-   ↓
-Repository
-   ↓
-Entity Framework Core
-   ↓
-SQLite
+Controller → Service → Repository → AppDbContext → SQLite
 ```
 
----
+| Camada | Responsabilidade |
+| --- | --- |
+| Frontend | Interface, navegação, formulários, feedback e chamadas HTTP. |
+| Controller | Contrato HTTP, model binding e códigos de resposta. |
+| Service | Regras de negócio, normalização, auditoria e orquestração. |
+| Repository | Consultas e persistência com Entity Framework Core. |
+| AppDbContext | Mapeamentos, filtros globais e configuração do EF Core. |
 
-# 2. FrontEnd
+O backend não expõe entidades do Entity Framework pela API: requests e responses usam DTOs. A exclusão lógica é aplicada por filtro global, por isso as consultas normais retornam apenas tarefas ativas.
 
-## 2.1 Funcionamento
+## Tecnologias
 
-O frontend é responsável pela interface apresentada ao usuário e pela comunicação com a API.
+### Frontend
 
-A aplicação utiliza:
+- Next.js 16 com App Router, React 19 e TypeScript.
+- Material UI e MUI X Data Grid.
+- React Hook Form e Zod para formulários e validação.
+- `fetch` nativo, centralizado em services por funcionalidade.
+
+### Backend
+
+- .NET 10 e ASP.NET Core.
+- Entity Framework Core com SQLite.
+- Serilog para logs.
+- Swagger/OpenAPI em Development e `ProblemDetails` para erros HTTP.
+- xUnit para testes automatizados.
+
+## Estrutura do repositório
 
 ```text
-Next.js
-React
-TypeScript
-Material UI
-React Hook Form
-Zod
-fetch nativo
+ProjetoTarefas/
+├── backend/
+│   ├── MinhaPrimeiraAPI/          # API, EF Core, migrations e SQLite
+│   └── MinhaPrimeiraAPI.Tests/    # Testes de services e repositories
+├── frontend/
+│   └── minha-primeira-api-web/    # Next.js, componentes e services HTTP
+├── scripts/                       # Backup, restore e manutenção do SQLite
+├── Database/                      # Bancos locais, ignorados pelo Git
+└── ProjetoTarefas.slnx
 ```
 
-A URL da API é obtida por variável de ambiente:
+No frontend, a funcionalidade de tarefas está organizada em `features/tarefas`, separando componentes, schemas Zod, services, tipos e utilitários. As rotas usam o App Router.
+
+## Execução local
+
+### Pré-requisitos
+
+- .NET SDK 10.
+- Node.js e npm compatíveis com o `package.json` do frontend.
+
+### 1. Iniciar o backend
+
+Na raiz do repositório:
+
+```powershell
+dotnet run --project backend/MinhaPrimeiraAPI
+```
+
+A API local usa `http://localhost:5025`. Em Development, o Swagger está disponível em `http://localhost:5025/swagger` e o health check em `http://localhost:5025/health`.
+
+### 2. Configurar e iniciar o frontend
+
+```powershell
+Set-Location frontend/minha-primeira-api-web
+Copy-Item .env.example .env.local
+npm install
+npm run dev
+```
+
+Em `.env.local`, mantenha a URL da API:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5025
 ```
 
-A comunicação HTTP está centralizada no service de tarefas, evitando chamadas à API espalhadas pelos componentes.
+O frontend local utiliza `http://localhost:3000`, origem já permitida pela configuração de Development do backend. Também estão disponíveis `npm run dev:api` e `npm run dev:all` para iniciar a API a partir do diretório do frontend.
 
-### Rotas principais
+## Principais fluxos da interface
 
-```text
-/
-→ página inicial
+| Rota | Função |
+| --- | --- |
+| `/` | Página inicial com atalhos para os fluxos principais. |
+| `/tarefas` | Grade paginada de tarefas, busca, filtros, ordenação e ações. |
+| `/tarefas/criar` | Formulário de criação de tarefa. |
+| `/tarefas/[id]` | Detalhes da tarefa. |
+| `/tarefas/selecionar/[modo]` | Seleção de tarefa para detalhes, edição ou histórico. |
+| `/tarefas/lixeira` | Tarefas excluídas logicamente, com restauração ou remoção permanente. |
 
-/tarefas
-→ listagem das tarefas
+Os formulários validam descrição, situação, prioridade e demais dados no cliente, mas a API continua responsável por proteger as regras de negócio. A interface usa feedbacks de carregamento, erro e sucesso com componentes Material UI.
 
-/tarefas/criar
-→ criação de nova tarefa
-```
-
-### Estrutura principal
-
-```text
-src/
-├── app/
-│   ├── page.tsx
-│   └── tarefas/
-│       ├── page.tsx
-│       ├── criar/
-│       │   └── page.tsx
-│       ├── error.tsx
-│       └── loading.tsx
-│
-├── components/
-│   └── ComponentesRoteador.tsx
-│
-├── features/
-│   └── tarefas/
-│       ├── components/
-│       ├── schemas/
-│       ├── services/
-│       ├── types/
-│       └── utils/
-│
-└── theme/
-    ├── theme.ts
-    └── ThemeProvider.tsx
-```
-
-### Listagem
-
-A tela de tarefas consulta:
-
-```http
-GET /api/tarefas
-```
-
-e apresenta os registros em uma tabela Material UI.
-
-São exibidos:
-
-```text
-Descrição
-Situação
-Última atualização
-Ações
-```
-
-A última atualização é calculada por:
-
-```ts
-tarefa.modificadaEm ?? tarefa.criadaEm
-```
-
-Portanto:
-
-```text
-se já foi modificada
-→ mostra ModificadaEm
-
-caso contrário
-→ mostra CriadaEm
-```
-
-### Criação
-
-O formulário permite informar:
-
-```text
-Descrição
-Situação
-```
-
-Após validação, o frontend executa:
-
-```http
-POST /api/tarefas
-```
-
-A criação utiliza React Hook Form e Zod.
-
-### Edição
-
-A edição é realizada em um Dialog Material UI.
-
-Fluxo:
-
-```text
-Menu de ações
-→ Editar
-→ abre Dialog
-→ usuário altera dados
-→ frontend valida
-→ PUT /api/tarefas/{id}
-→ fecha Dialog
-→ atualiza listagem
-```
-
-### Exclusão
-
-A exclusão disponível no frontend é lógica.
-
-Fluxo:
-
-```text
-Menu
-→ Excluir
-→ Dialog de confirmação
-→ DELETE /api/tarefas/{id}
-→ backend marca ExcluidaEm
-→ registro desaparece da listagem
-```
-
-A exclusão não ocorre imediatamente ao clicar na opção.
-
-Existe uma confirmação explícita antes da requisição DELETE.
-
-### Feedback
-
-A interface possui mecanismos de feedback utilizando Material UI, incluindo:
-
-```text
-Snackbar
-Alert
-Skeleton
-CircularProgress
-Dialog
-```
-
-A aplicação pode informar:
-
-```text
-operação concluída
-erro de comunicação
-validação inválida
-processamento em andamento
-```
-
----
-
-# 2.2 Regra
-
-As regras do frontend são voltadas principalmente para experiência do usuário, apresentação e prevenção de requisições inválidas.
-
-### Descrição
-
-A descrição:
-
-```text
-é obrigatória
-não pode ser composta apenas por espaços
-possui limite máximo de 200 caracteres
-```
-
-Espaços externos são desconsiderados pela validação.
-
-Exemplo:
-
-```text
-"   Comprar ração   "
-
-é tratado como:
-
-"Comprar ração"
-```
-
-### Situação
-
-As situações utilizadas pela interface são:
-
-```text
-Pendente
-Em andamento
-Concluída
-```
-
-Não são apresentados valores arbitrários no seletor.
-
-### Indicador visual
-
-Cada situação possui representação visual por `Chip` Material UI.
-
-```text
-Pendente
-→ warning
-
-Em andamento
-→ info/primary
-
-Concluída
-→ success
-```
-
-A cor é apenas representação visual.
-
-A regra real continua baseada no valor textual da situação.
-
-### Exclusão
-
-A exclusão deve:
-
-```text
-1. exigir confirmação
-2. impedir solicitações duplicadas durante processamento
-3. chamar a API
-4. atualizar a listagem após sucesso
-```
-
-O botão passa para estado semelhante a:
-
-```text
-Excluindo...
-```
-
-enquanto a requisição estiver em processamento.
-
-### Atualização
-
-Uma edição só é enviada depois que os dados forem validados pelo formulário.
-
-Após sucesso:
-
-```text
-Dialog fecha
-→ router.refresh()
-→ listagem é consultada novamente
-```
-
-### Datas
-
-Datas recebidas da API são apresentadas em formato brasileiro e ajustadas para o fuso utilizado pela aplicação.
-
-Formato aproximado:
-
-```text
-dd/MM/yyyy HH:mm
-```
-
-A interface não altera os valores de auditoria.
-
-Ela apenas os apresenta.
-
----
-
-# 2.3 Validação
-
-O frontend utiliza:
-
-```text
-React Hook Form
-+
-Zod
-```
-
-O Zod define o schema dos dados aceitos pelo formulário.
-
-### Descrição
-
-São verificadas condições como:
-
-```text
-valor obrigatório
-trim
-tamanho mínimo
-máximo de 200 caracteres
-```
-
-O campo também utiliza o limite HTML correspondente para melhorar a experiência de digitação.
-
-### Situação
-
-O valor deve pertencer ao conjunto permitido:
-
-```text
-Pendente
-Em andamento
-Concluída
-```
-
-### Exibição de erros
-
-Erros de formulário são apresentados próximos ao respectivo campo.
-
-Erros gerais podem ser apresentados por:
-
-```text
-Alert
-Snackbar
-```
-
-### Erro da API
-
-O frontend diferencia:
-
-```text
-resposta HTTP de erro
-```
-
-de:
-
-```text
-falha de conexão com a API
-```
-
-Exemplo:
-
-```text
-API retorna 404
-→ requisição foi realizada, mas o recurso não existe
-
-Failed to fetch
-→ frontend não conseguiu se comunicar com a API
-```
-
-### Página de erro
-
-A rota de tarefas possui:
-
-```text
-error.tsx
-```
-
-que apresenta uma interface amigável quando a consulta principal falha.
-
-Existe uma ação:
-
-```text
-Tentar novamente
-```
-
-que executa:
-
-```ts
-reset()
-```
-
----
-
-# 2.4 Comportamento
-
-### Ao abrir `/tarefas`
-
-```text
-Frontend consulta API
-→ API retorna tarefas ativas
-→ tabela é renderizada
-```
-
-Enquanto a rota estiver sendo carregada, `loading.tsx` apresenta Skeletons.
-
-### Quando não existem tarefas
-
-A interface apresenta um estado vazio em vez de uma tabela sem registros.
-
-O usuário recebe uma ação para criar sua primeira tarefa.
-
-### Ao criar
-
-```text
-Usuário preenche formulário
-→ Zod valida
-→ frontend envia POST
-→ backend cria
-→ frontend redireciona ou atualiza listagem
-```
-
-### Ao editar
-
-```text
-Usuário abre menu
-→ Editar
-→ Dialog abre preenchido
-→ usuário modifica
-→ frontend valida
-→ PUT
-→ Dialog fecha
-→ listagem atualizada
-```
-
-### Ao excluir
-
-```text
-Usuário abre menu
-→ Excluir
-→ Dialog pede confirmação
-→ usuário confirma
-→ DELETE
-→ botão fica desabilitado
-→ tarefa deixa de aparecer
-```
-
-### Se ocorrer erro
-
-```text
-requisição falha
-→ Dialog permanece aberto quando necessário
-→ mensagem de erro é apresentada
-→ usuário pode tentar novamente
-```
-
-### Responsividade
-
-A interface utiliza os mecanismos de layout do Material UI:
-
-```text
-Container
-Box
-Stack
-Paper
-TableContainer
-breakpoints
-```
-
-A tabela pode utilizar rolagem horizontal quando a largura da tela não comportar todas as colunas.
-
----
-
-# 3. BackEnd
-
-## 3.1 Funcionamento
-
-O backend é uma API REST construída com:
-
-```text
-ASP.NET Core
-.NET 10
-Entity Framework Core
-SQLite
-Serilog
-Swagger/OpenAPI
-```
-
-A arquitetura principal é:
-
-```text
-Controller
-   ↓
-Service
-   ↓
-Repository
-   ↓
-AppDbContext
-   ↓
-SQLite
-```
-
-### Controller
-
-O `TarefasController` recebe as requisições HTTP.
-
-Rota base:
-
-```http
-/api/tarefas
-```
-
-Endpoints existentes:
-
-```http
-GET /api/tarefas
-
-GET /api/tarefas/{id}
-
-POST /api/tarefas
-
-PUT /api/tarefas/{id}
-
-DELETE /api/tarefas/{id}
-
-DELETE /api/tarefas/{id}/permanente
-```
-
-### Service
-
-`TarefaService` concentra regras de negócio.
-
-Ele é responsável por:
-
-```text
-criação
-normalização
-datas de auditoria
-atualização
-conclusão
-reabertura
-exclusão lógica
-exclusão permanente
-mapeamento para DTO
-```
-
-### Repository
-
-`TarefaRepository` concentra o acesso aos dados.
-
-O contrato `ITarefaRepository` disponibiliza:
-
-```csharp
-ListarAtivasAsync()
-
-BuscarAtivaPorIdAsync()
-
-BuscarIncluindoExcluidasPorIdAsync()
-
-Adicionar()
-
-Remover()
-
-SalvarAlteracoesAsync()
-```
-
-### Entity Framework
-
-O `AppDbContext` mapeia a entidade `Tarefa` para:
-
-```text
-TAREFAS
-```
-
-Principais colunas:
-
-```text
-ID
-DESCRICAO
-SITUACAO
-CRIADA_EM
-MODIFICADA_EM
-SITUACAO_ALTERADA_EM
-CONCLUIDA_EM
-EXCLUIDA_EM
-```
-
----
-
-# 3.2 Regra
-
-## Criação
-
-Ao criar uma tarefa:
-
-```text
-CriadaEm
-→ DateTime.UtcNow
-
-SituacaoAlteradaEm
-→ mesma data da criação
-
-ModificadaEm
-→ null
-
-ExcluidaEm
-→ null
-```
-
-Caso nenhuma situação seja informada:
-
-```text
-Situação = Pendente
-```
-
-O Service também executa `Trim()` na descrição.
-
-### Tarefa criada como concluída
-
-Caso a situação seja:
-
-```text
-Concluída
-```
-
-então:
-
-```text
-ConcluidaEm = data da criação
-```
-
-Caso contrário:
-
-```text
-ConcluidaEm = null
-```
-
----
-
-## Atualização
+## Modelo e regras de negócio
 
-O Service compara:
+Uma tarefa possui descrição obrigatória de até 200 caracteres, situação, prioridade, data de vencimento, observações, projeto e etiquetas. Campos de auditoria como `criadaEm`, `modificadaEm`, `situacaoAlteradaEm`, `concluidaEm` e `excluidaEm` são instantes UTC gerados pelo backend.
 
-```text
-descrição atual × nova descrição
-situação atual × nova situação
-```
-
-### Nenhuma alteração
-
-Quando nenhum valor realmente mudou:
-
-```text
-nenhum SaveChanges é executado
-ModificadaEm não é alterada
-SituacaoAlteradaEm não é alterada
-```
-
-### Alteração somente da descrição
-
-```text
-Descricao
-→ alterada
-
-ModificadaEm
-→ atualizada
-
-SituacaoAlteradaEm
-→ preservada
-
-ConcluidaEm
-→ preservada
-```
-
-### Alteração da situação
-
-```text
-Situacao
-→ atualizada
-
-SituacaoAlteradaEm
-→ DateTime.UtcNow
-
-ModificadaEm
-→ DateTime.UtcNow
-```
-
-### Conclusão
-
-Transição:
-
-```text
-Pendente/Em andamento
-→ Concluída
-```
-
-gera:
-
-```text
-ConcluidaEm = DateTime.UtcNow
-```
-
-### Reabertura
-
-Transição:
-
-```text
-Concluída
-→ Pendente
-```
-
-ou:
-
-```text
-Concluída
-→ Em andamento
-```
-
-gera:
-
-```text
-ConcluidaEm = null
-```
-
----
-
-## Exclusão lógica
-
-A exclusão padrão não remove fisicamente o registro.
-
-O Service executa:
-
-```csharp
-tarefa.ExcluidaEm = DateTime.UtcNow;
-```
-
-e salva a alteração.
-
-O registro continua armazenado no SQLite.
-
-O `AppDbContext` utiliza:
-
-```csharp
-entity.HasQueryFilter(
-    tarefa => tarefa.ExcluidaEm == null
-);
-```
-
-Portanto, consultas normais não retornam tarefas excluídas logicamente.
-
----
-
-## Exclusão permanente
-
-A remoção física só pode ocorrer se a tarefa já estiver excluída logicamente.
-
-Fluxo:
-
-```text
-buscar incluindo excluídas
-        ↓
-registro existe?
- ├─ não → NãoEncontrada
- └─ sim
-       ↓
-ExcluidaEm está preenchida?
- ├─ não → TarefaAtiva
- └─ sim → remover fisicamente
-```
-
-Resultados possíveis:
-
-```text
-Sucesso
-NaoEncontrada
-TarefaAtiva
-```
-
-Uma tarefa ativa não pode ser removida permanentemente.
-
----
-
-# 3.3 Validação
-
-## Validação de ID
-
-O Controller executa:
-
-```csharp
-id <= 0
-```
-
-como condição inválida.
-
-Mensagem correspondente:
-
-```text
-O ID da tarefa deve ser maior que zero.
-```
-
-Isso é aplicado em operações como:
-
-```text
-buscar
-atualizar
-excluir logicamente
-excluir permanentemente
-```
-
----
-
-## Validação de persistência
-
-O Entity Framework estabelece:
-
-### Descrição
-
-```text
-obrigatória
-máximo de 200 caracteres
-```
-
-Mapeamento:
-
-```csharp
-.HasMaxLength(200)
-.IsRequired()
-```
-
-### Situação
-
-```text
-obrigatória
-máximo de 30 caracteres
-```
-
-Mapeamento:
-
-```csharp
-.HasMaxLength(30)
-.IsRequired()
-```
-
-### Datas obrigatórias
-
-```text
-CriadaEm
-SituacaoAlteradaEm
-```
-
-### Datas opcionais
-
-```text
-ModificadaEm
-ConcluidaEm
-ExcluidaEm
-```
-
----
-
-## Recurso inexistente
-
-Quando uma tarefa não é encontrada:
-
-```http
-404 Not Found
-```
-
-Exemplo:
-
-```text
-Nenhuma tarefa encontrada com o ID 100.
-```
-
----
-
-## Exclusão permanente inválida
-
-Quando uma tarefa ativa é enviada para exclusão permanente:
-
-```http
-409 Conflict
-```
-
-O backend impede a remoção.
-
----
-
-# 3.4 Comportamento
-
-## GET `/api/tarefas`
-
-Fluxo:
-
-```text
-Controller
-→ Service.ListarAsync
-→ Repository.ListarAtivasAsync
-→ Entity Framework
-→ filtro ExcluidaEm == null
-→ banco
-```
-
-Resposta:
-
-```http
-200 OK
-```
-
-com lista de tarefas ativas.
-
----
+| Regra | Comportamento |
+| --- | --- |
+| Criação | Situação padrão `Pendente` e prioridade padrão `Media` quando ausentes. |
+| Normalização | Textos recebem trim; observações vazias tornam-se `null`. |
+| Situação | Transições entre os três estados são permitidas; repetir a mesma situação não gera efeito colateral. |
+| Conclusão | Ao entrar em `Concluída`, registra `concluidaEm`; ao sair, o campo é limpo. |
+| Projeto | É opcional. Excluir um projeto preserva as tarefas, removendo apenas a associação. |
+| Etiquetas | São opcionais e múltiplas. Excluir uma etiqueta remove suas associações, sem excluir tarefas. |
+| Exclusão | O `DELETE` comum envia a tarefa à lixeira; a exclusão física só é permitida para tarefa já excluída logicamente. |
+| Histórico | Registra criação, descrição, situação, prioridade, vencimento, observações, projeto, etiquetas, exclusão e restauração. |
 
-## GET `/api/tarefas/{id}`
+## API HTTP
 
-### ID inválido
+As rotas principais são:
 
-```http
-GET /api/tarefas/0
-```
-
-Resposta:
-
-```http
-400 Bad Request
-```
-
-### Não encontrada
-
-```http
-404 Not Found
-```
-
-### Encontrada
-
-```http
-200 OK
-```
-
-com `TarefaResponse`.
-
----
-
-## POST `/api/tarefas`
-
-Fluxo:
-
-```text
-Request
-→ Controller
-→ Service
-→ cria entidade
-→ Repository.Adicionar
-→ SaveChanges
-→ Response
-```
-
-Resposta:
-
-```http
-201 Created
-```
-
-O retorno utiliza `CreatedAtAction`.
-
----
-
-## PUT `/api/tarefas/{id}`
-
-Se a tarefa existir:
-
-```http
-204 No Content
-```
-
-Se não existir:
-
-```http
-404 Not Found
-```
-
-Se o ID for inválido:
-
-```http
-400 Bad Request
-```
-
----
-
-## DELETE `/api/tarefas/{id}`
-
-Executa exclusão lógica.
-
-### Sucesso
-
-```http
-204 No Content
-```
-
-### Não encontrada
-
-```http
-404 Not Found
-```
-
-### ID inválido
-
-```http
-400 Bad Request
-```
-
-Após a operação, o registro permanece fisicamente no banco com:
-
-```text
-EXCLUIDA_EM != NULL
-```
-
----
-
-## DELETE `/api/tarefas/{id}/permanente`
-
-### Tarefa excluída logicamente
-
-```http
-204 No Content
-```
-
-### Tarefa inexistente
-
-```http
-404 Not Found
-```
-
-### Tarefa ainda ativa
-
-```http
-409 Conflict
-```
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| GET | `/health` | Verifica a disponibilidade da API e do SQLite. |
+| GET | `/api/tarefas` | Lista tarefas ativas com filtros, ordenação e paginação. |
+| GET | `/api/tarefas/resumo` | Retorna indicadores agregados das tarefas ativas. |
+| GET | `/api/tarefas/excluidas` | Lista a lixeira. |
+| GET | `/api/tarefas/{id}` | Consulta uma tarefa ativa. |
+| GET | `/api/tarefas/{id}/historico` | Consulta o histórico, inclusive de tarefa na lixeira. |
+| POST | `/api/tarefas` | Cria uma tarefa. |
+| PUT | `/api/tarefas/{id}` | Atualiza uma tarefa ativa. |
+| DELETE | `/api/tarefas/{id}` | Executa exclusão lógica. |
+| PATCH | `/api/tarefas/{id}/restaurar` | Restaura tarefa da lixeira. |
+| DELETE | `/api/tarefas/{id}/permanente` | Exclui permanentemente tarefa na lixeira. |
+| GET, POST, DELETE | `/api/etiquetas` e `/api/etiquetas/{id}` | Gerencia etiquetas. |
+| GET, POST, DELETE | `/api/projetos` e `/api/projetos/{id}` | Gerencia projetos. |
 
-### ID inválido
+`GET /api/tarefas` aceita `busca`, `situacao`, `prioridade`, `prazo`, `etiquetaId`, `projetoId`, `ordenarPor`, `direcao`, `pagina` e `tamanhoPagina`. Os filtros e a paginação são executados no banco antes de o resultado ser retornado.
 
-```http
-400 Bad Request
-```
-
----
-
-# 4. DTOs e Comunicação
-
-O backend não expõe diretamente a entidade `Tarefa`.
-
-São utilizados DTOs para comunicação.
-
-Fluxo de entrada:
-
-```text
-JSON
-→ Request DTO
-→ Service
-→ Entity
-```
-
-Fluxo de saída:
-
-```text
-Entity
-→ TarefaResponse
-→ JSON
-```
-
-O `TarefaResponse` contempla:
-
-```text
-Id
-Descricao
-Situacao
-CriadaEm
-ModificadaEm
-SituacaoAlteradaEm
-ConcluidaEm
-ExcluidaEm
-```
+Erros controlados seguem o formato `ProblemDetails`. IDs inválidos e consultas inválidas retornam `400`; recursos inexistentes, `404`; conflitos de negócio, como restaurar tarefa ativa ou criar projeto/etiqueta duplicado, retornam `409`.
 
----
+Para o contrato de requests, responses, valores aceitos e exemplos, consulte o [README do backend](backend/README.md#contrato-http).
 
-# 5. Logs
+## Configuração por ambiente
 
-O backend utiliza Serilog e `ILogger`.
-
-São registrados eventos como:
-
-```text
-inicialização
-listagem
-criação
-atualização
-exclusão
-recurso não encontrado
-operações rejeitadas
-erros inesperados
-```
-
-Exemplo conceitual:
-
-```text
-Tarefa atualizada.
-TarefaId=10
-DescricaoAlterada=True
-SituacaoAlterada=False
-```
-
-Os logs utilizam propriedades estruturadas em vez de simples concatenação de texto.
-
----
-
-# 6. Testes Automatizados
-
-Existe um projeto separado:
-
-```text
-MinhaPrimeiraAPI.Tests
-```
-
-utilizando:
-
-```text
-xUnit
-```
+O backend usa a configuração padrão do ASP.NET Core: `appsettings.json` contém valores compartilhados e `appsettings.{Environment}.json` prevalece sobre ele.
 
-Os testes unitários verificam regras do `TarefaService`.
+| Ambiente | Arquivo | Uso |
+| --- | --- | --- |
+| `Development` | `appsettings.Development.json` | SQLite local, CORS para `http://localhost:3000` e host local. |
+| `Homologation` | `appsettings.Homologation.json` | Requer conexão, origens CORS e hosts fornecidos pela infraestrutura. |
+| `Production` | `appsettings.Production.json` | Requer os valores operacionais fora do repositório. |
 
-Atualmente foram executados:
+Em Homologation e Production, informe ao menos `ConnectionStrings__DefaultConnection` e `Cors__AllowedOrigins__0` no ambiente de hospedagem. Não versione segredos, URLs definitivas ou caminhos de volumes persistentes. O [README do backend](backend/README.md#ambientes) contém um exemplo completo em PowerShell e o procedimento de migrations.
 
-```text
-Total: 20
-Sucesso: 20
-Falhas: 0
-Ignorados: 0
-```
+## Banco, migrations e manutenção
 
-Os cenários incluem:
+Migrations não são aplicadas no startup. Para preparar o banco, execute explicitamente:
 
-```text
-listagem
-busca por ID
-criação
-situação padrão
-trim
-criação concluída
-atualização
-edição sem mudanças
-conclusão
-reabertura
-exclusão lógica
-exclusão permanente
+```powershell
+dotnet ef database update --project backend/MinhaPrimeiraAPI --startup-project backend/MinhaPrimeiraAPI
 ```
-
-Os testes automatizados têm como finalidade:
-
-> Executar uma regra do sistema e verificar se o resultado obtido corresponde ao resultado esperado.
 
----
+Os scripts `backup-database.ps1` e `restore-database.ps1` utilizam a API de backup do SQLite. Pare a API antes dessas operações e siga as instruções do [README do backend](backend/README.md#backup-e-restore).
 
-# 7. Resumo das Responsabilidades
+## Validação
 
-## Frontend
+Backend, a partir da raiz:
 
-### Funcionamento
-
-Responsável por:
-
-```text
-interface
-navegação
-formulários
-exibição
-comunicação HTTP
-feedback ao usuário
+```powershell
+dotnet build ProjetoTarefas.slnx
+dotnet test ProjetoTarefas.slnx --no-build
 ```
-
-### Regra
-
-Responsável por regras de experiência e apresentação.
 
-Não deve concentrar regras críticas de negócio.
+Frontend:
 
-### Validação
-
-Realiza validação imediata com React Hook Form e Zod antes de enviar dados.
-
-### Comportamento
-
-Controla:
-
-```text
-Dialogs
-Menus
-Loading
-Erros
-Snackbar
-Tabela
-Navegação
+```powershell
+Set-Location frontend/minha-primeira-api-web
+npm run lint
+npm run build
 ```
-
----
-
-## Backend
-
-### Funcionamento
 
-Responsável pelo processamento das operações e persistência.
+Os testes backend cobrem regras de service e consultas de repository com SQLite real em memória, incluindo filtros globais, ordenação, paginação, histórico, projetos e etiquetas. O total de testes é evolutivo; consulte a saída do comando para o resultado da versão em execução.
 
-### Regra
-
-É a fonte principal das regras de negócio.
-
-### Validação
-
-Protege a aplicação independentemente do frontend.
-
-### Comportamento
-
-Transforma requisições HTTP em operações sobre os dados e responde utilizando códigos HTTP apropriados.
-
----
-
-# 8. Princípio Arquitetural
-
-A separação adotada no projeto pode ser resumida por:
-
-```text
-Frontend
-→ apresenta e coleta dados
-
-Controller
-→ entende HTTP
-
-Service
-→ entende regras de negócio
-
-Repository
-→ entende acesso aos dados
-
-Entity Framework
-→ traduz objetos para persistência
-
-SQLite
-→ armazena os registros
-```
+## Documentação relacionada
 
-Essa divisão reduz acoplamento, facilita manutenção, permite testes isolados e possibilita a evolução futura da aplicação sem concentrar toda a responsabilidade em uma única camada.
+- [Backend: operação, ambientes, migrations e contrato HTTP](backend/README.md)
+- [Frontend: configuração, comandos e integração HTTP](frontend/minha-primeira-api-web/README.md)
+- [Diário de trabalho](DIARIO.md)
+- [Regras de engenharia do repositório](AGENTS.md)
