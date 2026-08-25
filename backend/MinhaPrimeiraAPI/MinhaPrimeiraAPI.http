@@ -1,0 +1,33 @@
+@MinhaPrimeiraAPI_HostAddress = http://localhost:5025
+
+### Listar tarefas ativas
+GET {{MinhaPrimeiraAPI_HostAddress}}/api/tarefas
+Accept: application/json
+
+### Buscar tarefa por ID
+GET {{MinhaPrimeiraAPI_HostAddress}}/api/tarefas/1
+Accept: application/json
+
+### Criar tarefa
+POST {{MinhaPrimeiraAPI_HostAddress}}/api/tarefas
+Content-Type: application/json
+
+{
+  "descricao": "Estudar arquitetura em camadas",
+  "situacao": "Pendente"
+}
+
+### Atualizar tarefa
+PUT {{MinhaPrimeiraAPI_HostAddress}}/api/tarefas/1
+Content-Type: application/json
+
+{
+  "descricao": "Estudar Controller, Service e Repository",
+  "situacao": "Concluída"
+}
+
+### Exclusão lógica
+DELETE {{MinhaPrimeiraAPI_HostAddress}}/api/tarefas/1
+
+### Exclusão permanente
+DELETE {{MinhaPrimeiraAPI_HostAddress}}/api/tarefas/1/permanente
