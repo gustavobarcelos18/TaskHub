@@ -23,6 +23,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import { excluirTarefa } from "../services/tarefa-service";
 import type { Tarefa } from "../types/tarefa";
@@ -56,6 +57,11 @@ export function MenuAcoesTarefa({ tarefa }: MenuAcoesTarefaProps) {
   function abrirDialogoEdicao() {
     fecharMenu();
     setDialogoEdicaoAberto(true);
+  }
+
+  function abrirDetalhes() {
+    fecharMenu();
+    router.push(`/tarefas/${tarefa.id}`);
   }
 
   function abrirDialogoExclusao() {
@@ -106,6 +112,14 @@ export function MenuAcoesTarefa({ tarefa }: MenuAcoesTarefaProps) {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
+        <MenuItem onClick={abrirDetalhes}>
+          <ListItemIcon>
+            <VisibilityIcon fontSize="small" />
+          </ListItemIcon>
+
+          <ListItemText>Detalhes</ListItemText>
+        </MenuItem>
+
         <MenuItem onClick={abrirDialogoEdicao}>
           <ListItemIcon>
             <EditIcon fontSize="small" />

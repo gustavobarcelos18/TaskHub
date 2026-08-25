@@ -8,6 +8,10 @@ public class TarefaResponse
 
     public string Situacao { get; set; } = string.Empty;
 
+    public string Prioridade { get; set; } = string.Empty;
+
+    public DateOnly? DataVencimento { get; set; }
+
     public DateTime CriadaEm { get; set; }
 
     public DateTime? ModificadaEm { get; set; }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MinhaPrimeiraAPI.Data;
 
@@ -10,9 +11,11 @@ using MinhaPrimeiraAPI.Data;
 namespace MinhaPrimeiraAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260819130016_AdicionarHistoricoTarefas")]
+    partial class AdicionarHistoricoTarefas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
@@ -75,10 +78,6 @@ namespace MinhaPrimeiraAPI.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("CRIADA_EM");
 
-                    b.Property<DateOnly?>("DataVencimento")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("DATA_VENCIMENTO");
-
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -92,14 +91,6 @@ namespace MinhaPrimeiraAPI.Migrations
                     b.Property<DateTime?>("ModificadaEm")
                         .HasColumnType("TEXT")
                         .HasColumnName("MODIFICADA_EM");
-
-                    b.Property<string>("Prioridade")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .HasColumnType("TEXT")
-                        .HasDefaultValue("Media")
-                        .HasColumnName("PRIORIDADE");
 
                     b.Property<string>("Situacao")
                         .IsRequired()

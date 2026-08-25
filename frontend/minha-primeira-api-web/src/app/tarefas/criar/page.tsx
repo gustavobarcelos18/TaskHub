@@ -1,7 +1,6 @@
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { IconBotaoLink } from "@/components/ComponentesRoteador";
@@ -22,15 +21,14 @@ export default function NovaTarefaPage() {
         <Stack spacing={4}>
           <Box>
             <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-              <Tooltip title="Voltar para tarefas">
-                <IconBotaoLink
-                  href="/tarefas"
-                  aria-label="Voltar para tarefas"
-                  sx={{ border: "1px solid", borderColor: "divider" }}
-                >
-                  <ArrowBackIcon />
-                </IconBotaoLink>
-              </Tooltip>
+              <IconBotaoLink
+                href="/tarefas"
+                aria-label="Voltar para tarefas"
+                tooltip="Voltar para tarefas"
+                sx={{ border: "1px solid", borderColor: "divider" }}
+              >
+                <ArrowBackIcon />
+              </IconBotaoLink>
 
               <Typography variant="h2" component="h1">
                 Nova tarefa

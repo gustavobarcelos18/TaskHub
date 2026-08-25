@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using MinhaPrimeiraAPI.DTOs.Requests;
 using MinhaPrimeiraAPI.Models;
+using MinhaPrimeiraAPI.Repositories;
 using MinhaPrimeiraAPI.Services;
 using MinhaPrimeiraAPI.Tests.Fakes;
 using Xunit;
@@ -9,6 +10,99 @@ namespace MinhaPrimeiraAPI.Tests.Services;
 
 public sealed class TarefaServiceTests
 {
+    private static readonly DateTimeOffset InstanteControlado = new(2030, 1, 2, 3, 4, 5, TimeSpan.Zero);
+
+    [Fact]
+    public async Task CriarAsync_DeveUsarInstanteControladoNasDatasDeAuditoria()
+    {
+        var repository = new TarefaRepositoryFake();
+
+        var resultado = await CriarService(repository).CriarAsync(new CriarTarefaRequest
+        {
+            Descricao = "Tarefa controlada",
+            Situacao = "Concluída"
+        });
+
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.CriadaEm);
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.SituacaoAlteradaEm);
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.ConcluidaEm);
+        Assert.Null(resultado.ModificadaEm);
+        Assert.Null(resultado.ExcluidaEm);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_DeveUsarInstanteControladoNasDatasAlteradas()
+    {
+        var tarefa = CriarTarefa(500, "Original", "Pendente");
+        var repository = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        var resultado = await CriarService(repository).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = "Atualizada",
+            Situacao = "Concluída"
+        });
+
+        Assert.NotNull(resultado);
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.ModificadaEm);
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.SituacaoAlteradaEm);
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.ConcluidaEm);
+    }
+
+    [Fact]
+    public async Task ListarAsync_DeveRepassarCancellationTokenAoRepositorio()
+    {
+        var repository = new TarefaRepositoryFake();
+        using var source = new CancellationTokenSource();
+
+        await CriarService(repository).ListarAsync(new ConsultaTarefasRequest(), source.Token);
+
+        Assert.Equal(source.Token, repository.UltimoCancellationToken);
+    }
+    [Fact]
+    public async Task ObterResumoAsync_DeveMapearOsQuatroContadoresDoRepository()
+    {
+        // Arrange
+        var tarefaRepository = new TarefaRepositoryFake
+        {
+            ResultadoResumoConfigurado = new ResultadoResumoTarefas
+            {
+                Total = 10,
+                Pendentes = 3,
+                EmAndamento = 2,
+                Concluidas = 4
+            }
+        };
+
+        var tarefaService = CriarService(tarefaRepository);
+
+        // Act
+        var resultado = await tarefaService.ObterResumoAsync();
+
+        // Assert
+        Assert.Equal(10, resultado.Total);
+        Assert.Equal(3, resultado.Pendentes);
+        Assert.Equal(2, resultado.EmAndamento);
+        Assert.Equal(4, resultado.Concluidas);
+        Assert.Equal(1, tarefaRepository.QuantidadeChamadasObterResumoAtivas);
+    }
+
+    [Fact]
+    public async Task ObterResumoAsync_RepositoryComZeros_DeveRetornarQuatroZeros()
+    {
+        // Arrange
+        var tarefaRepository = new TarefaRepositoryFake();
+        var tarefaService = CriarService(tarefaRepository);
+
+        // Act
+        var resultado = await tarefaService.ObterResumoAsync();
+
+        // Assert
+        Assert.Equal(0, resultado.Total);
+        Assert.Equal(0, resultado.Pendentes);
+        Assert.Equal(0, resultado.EmAndamento);
+        Assert.Equal(0, resultado.Concluidas);
+    }
+
     [Fact]
     public async Task ListarAsync_DeveRetornarTodasAsTarefasAtivasMapeadas()
     {
@@ -33,32 +127,36 @@ public sealed class TarefaServiceTests
         var tarefaService = CriarService(tarefaRepository);
 
         // Act
-        var resultado = await tarefaService.ListarAsync();
+        var resultado = await tarefaService.ListarAsync(new ConsultaTarefasRequest());
 
         // Assert
-        Assert.Equal(2, resultado.Count);
+        Assert.Equal(2, resultado.Itens.Count);
+        Assert.Equal(1, resultado.PaginaAtual);
+        Assert.Equal(10, resultado.TamanhoPagina);
+        Assert.Equal(2, resultado.TotalItens);
+        Assert.Equal(1, resultado.TotalPaginas);
 
-        Assert.Equal(primeiraTarefa.Id, resultado[0].Id);
-        Assert.Equal(primeiraTarefa.Descricao, resultado[0].Descricao);
-        Assert.Equal(primeiraTarefa.Situacao, resultado[0].Situacao);
-        Assert.Equal(primeiraTarefa.CriadaEm, resultado[0].CriadaEm);
-        Assert.Equal(primeiraTarefa.ModificadaEm, resultado[0].ModificadaEm);
+        Assert.Equal(primeiraTarefa.Id, resultado.Itens[0].Id);
+        Assert.Equal(primeiraTarefa.Descricao, resultado.Itens[0].Descricao);
+        Assert.Equal(primeiraTarefa.Situacao, resultado.Itens[0].Situacao);
+        Assert.Equal(primeiraTarefa.CriadaEm, resultado.Itens[0].CriadaEm);
+        Assert.Equal(primeiraTarefa.ModificadaEm, resultado.Itens[0].ModificadaEm);
         Assert.Equal(
             primeiraTarefa.SituacaoAlteradaEm,
-            resultado[0].SituacaoAlteradaEm
+            resultado.Itens[0].SituacaoAlteradaEm
         );
         Assert.Equal(
             primeiraTarefa.ConcluidaEm,
-            resultado[0].ConcluidaEm
+            resultado.Itens[0].ConcluidaEm
         );
         Assert.Equal(
             primeiraTarefa.ExcluidaEm,
-            resultado[0].ExcluidaEm
+            resultado.Itens[0].ExcluidaEm
         );
 
-        Assert.Equal(segundaTarefa.Id, resultado[1].Id);
-        Assert.Equal(segundaTarefa.Descricao, resultado[1].Descricao);
-        Assert.Equal(segundaTarefa.Situacao, resultado[1].Situacao);
+        Assert.Equal(segundaTarefa.Id, resultado.Itens[1].Id);
+        Assert.Equal(segundaTarefa.Descricao, resultado.Itens[1].Descricao);
+        Assert.Equal(segundaTarefa.Situacao, resultado.Itens[1].Situacao);
 
         Assert.Equal(
             1,
@@ -151,11 +249,7 @@ public sealed class TarefaServiceTests
         Assert.Equal("Comprar ração", resultado.Descricao);
         Assert.Equal("Pendente", resultado.Situacao);
 
-        Assert.InRange(
-            resultado.CriadaEm,
-            instanteAnterior,
-            instantePosterior
-        );
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.CriadaEm);
 
         Assert.Equal(
             resultado.CriadaEm,
@@ -244,11 +338,7 @@ public sealed class TarefaServiceTests
         // Assert
         Assert.NotNull(resultado.ConcluidaEm);
 
-        Assert.InRange(
-            resultado.ConcluidaEm.Value,
-            instanteAnterior,
-            instantePosterior
-        );
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.ConcluidaEm);
 
         Assert.Equal(
             resultado.CriadaEm,
@@ -446,11 +536,7 @@ public sealed class TarefaServiceTests
 
         Assert.NotNull(resultado.ModificadaEm);
 
-        Assert.InRange(
-            resultado.ModificadaEm.Value,
-            instanteAnterior,
-            instantePosterior
-        );
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.ModificadaEm);
 
         Assert.Equal(
             situacaoAlteradaEm,
@@ -514,11 +600,7 @@ public sealed class TarefaServiceTests
         Assert.NotNull(resultado.ModificadaEm);
         Assert.NotNull(resultado.ConcluidaEm);
 
-        Assert.InRange(
-            resultado.ModificadaEm.Value,
-            instanteAnterior,
-            instantePosterior
-        );
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.ModificadaEm);
 
         Assert.Equal(
             resultado.ModificadaEm,
@@ -584,11 +666,7 @@ public sealed class TarefaServiceTests
         Assert.Null(resultado.ConcluidaEm);
         Assert.NotNull(resultado.ModificadaEm);
 
-        Assert.InRange(
-            resultado.ModificadaEm.Value,
-            instanteAnterior,
-            instantePosterior
-        );
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.ModificadaEm);
 
         Assert.Equal(
             resultado.ModificadaEm,
@@ -631,11 +709,7 @@ public sealed class TarefaServiceTests
         Assert.True(resultado);
         Assert.NotNull(tarefa.ExcluidaEm);
 
-        Assert.InRange(
-            tarefa.ExcluidaEm.Value,
-            instanteAnterior,
-            instantePosterior
-        );
+        Assert.Equal(InstanteControlado.UtcDateTime, tarefa.ExcluidaEm);
 
         Assert.Equal(
             tarefa.Id,
@@ -811,12 +885,440 @@ public sealed class TarefaServiceTests
         );
     }
 
+    [Fact]
+    public async Task ListarExcluidasAsync_DeveRetornarSomenteTarefasExcluidas()
+    {
+        // Arrange
+        var tarefaExcluida = CriarTarefa(90, "Tarefa na lixeira", "Pendente");
+        tarefaExcluida.ExcluidaEm = DateTime.UtcNow.AddHours(-1);
+
+        var tarefaRepository = new TarefaRepositoryFake();
+        tarefaRepository.TarefasExcluidas.Add(tarefaExcluida);
+
+        var tarefaService = CriarService(tarefaRepository);
+
+        // Act
+        var resultado = await tarefaService.ListarExcluidasAsync();
+
+        // Assert
+        var tarefa = Assert.Single(resultado);
+        Assert.Equal(tarefaExcluida.Id, tarefa.Id);
+        Assert.NotNull(tarefa.ExcluidaEm);
+        Assert.Equal(1, tarefaRepository.QuantidadeChamadasListarExcluidas);
+        Assert.Equal(0, tarefaRepository.QuantidadeChamadasListarAtivas);
+    }
+
+    [Fact]
+    public async Task RestaurarAsync_TarefaExcluida_DeveLimparExcluidaEmEPreservarEstado()
+    {
+        // Arrange
+        var conclusao = DateTime.UtcNow.AddDays(-2);
+        var exclusao = DateTime.UtcNow.AddHours(-1);
+        var tarefa = CriarTarefa(100, "Tarefa concluída", "Concluída");
+        tarefa.SituacaoAlteradaEm = conclusao;
+        tarefa.ConcluidaEm = conclusao;
+        tarefa.ExcluidaEm = exclusao;
+
+        var tarefaRepository = new TarefaRepositoryFake
+        {
+            TarefaRetornadaPorBuscaIncluindoExcluidas = tarefa
+        };
+        var tarefaService = CriarService(tarefaRepository);
+        var instanteAnterior = DateTime.UtcNow;
+
+        // Act
+        var resultado = await tarefaService.RestaurarAsync(tarefa.Id);
+
+        var instantePosterior = DateTime.UtcNow;
+
+        // Assert
+        Assert.Equal(ResultadoRestauracao.Sucesso, resultado);
+        Assert.Null(tarefa.ExcluidaEm);
+        Assert.Equal("Concluída", tarefa.Situacao);
+        Assert.Equal(conclusao, tarefa.SituacaoAlteradaEm);
+        Assert.Equal(conclusao, tarefa.ConcluidaEm);
+        Assert.NotNull(tarefa.ModificadaEm);
+        Assert.Equal(InstanteControlado.UtcDateTime, tarefa.ModificadaEm);
+        Assert.Equal(1, tarefaRepository.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task RestaurarAsync_TarefaInexistente_DeveRetornarNaoEncontradaENaoSalvar()
+    {
+        // Arrange
+        var tarefaRepository = new TarefaRepositoryFake
+        {
+            TarefaRetornadaPorBuscaIncluindoExcluidas = null
+        };
+        var tarefaService = CriarService(tarefaRepository);
+
+        // Act
+        var resultado = await tarefaService.RestaurarAsync(999);
+
+        // Assert
+        Assert.Equal(ResultadoRestauracao.NaoEncontrada, resultado);
+        Assert.Equal(0, tarefaRepository.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task RestaurarAsync_TarefaAtiva_DeveBloquearRestauracaoENaoSalvar()
+    {
+        // Arrange
+        var tarefa = CriarTarefa(110, "Tarefa ativa", "Pendente");
+        var tarefaRepository = new TarefaRepositoryFake
+        {
+            TarefaRetornadaPorBuscaIncluindoExcluidas = tarefa
+        };
+        var tarefaService = CriarService(tarefaRepository);
+
+        // Act
+        var resultado = await tarefaService.RestaurarAsync(tarefa.Id);
+
+        // Assert
+        Assert.Equal(ResultadoRestauracao.TarefaAtiva, resultado);
+        Assert.Equal(0, tarefaRepository.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task ListarAsync_ConsultaPadrao_DeveEnviarDefaultsAoRepositorio()
+    {
+        var repositorio = new TarefaRepositoryFake();
+
+        await CriarService(repositorio).ListarAsync(new ConsultaTarefasRequest());
+
+        var consulta = Assert.IsType<ConsultaTarefas>(repositorio.UltimaConsultaTarefas);
+        Assert.Equal(1, consulta.Pagina);
+        Assert.Equal(10, consulta.TamanhoPagina);
+        Assert.Equal(CampoOrdenacaoTarefa.UltimaAtualizacao, consulta.OrdenarPor);
+        Assert.Equal(DirecaoOrdenacao.Desc, consulta.Direcao);
+        Assert.Null(consulta.Busca);
+        Assert.Null(consulta.Situacao);
+    }
+
+    [Fact]
+    public async Task ListarAsync_ConsultaValida_DeveNormalizarEMapearResultadoPaginado()
+    {
+        var tarefa = CriarTarefa(1, "Relatório", "Pendente");
+        var repositorio = new TarefaRepositoryFake
+        {
+            ResultadoConsultaConfigurado = new ResultadoConsultaTarefas
+            {
+                Itens = [tarefa],
+                TotalItens = 21
+            }
+        };
+
+        var resultado = await CriarService(repositorio).ListarAsync(new ConsultaTarefasRequest
+        {
+            Busca = "  relatório  ", Situacao = " pendente ", OrdenarPor = "descricao",
+            Direcao = "asc", Pagina = 2, TamanhoPagina = 10
+        });
+
+        Assert.Equal("relatório", repositorio.UltimaConsultaTarefas!.Busca);
+        Assert.Equal("Pendente", repositorio.UltimaConsultaTarefas.Situacao);
+        Assert.Equal(CampoOrdenacaoTarefa.Descricao, repositorio.UltimaConsultaTarefas.OrdenarPor);
+        Assert.Equal(DirecaoOrdenacao.Asc, repositorio.UltimaConsultaTarefas.Direcao);
+        Assert.Equal(2, resultado.PaginaAtual);
+        Assert.Equal(10, resultado.TamanhoPagina);
+        Assert.Equal(21, resultado.TotalItens);
+        Assert.Equal(3, resultado.TotalPaginas);
+        Assert.Equal(tarefa.Id, Assert.Single(resultado.Itens).Id);
+    }
+
+    [Theory]
+    [InlineData("Cancelada")]
+    public async Task ListarAsync_SituacaoInvalida_DeveRejeitar(string situacao)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => CriarService(new TarefaRepositoryFake())
+            .ListarAsync(new ConsultaTarefasRequest { Situacao = situacao }));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task ListarAsync_PaginaInvalida_DeveRejeitar(int pagina)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => CriarService(new TarefaRepositoryFake())
+            .ListarAsync(new ConsultaTarefasRequest { Pagina = pagina }));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(101)]
+    public async Task ListarAsync_TamanhoPaginaInvalido_DeveRejeitar(int tamanhoPagina)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => CriarService(new TarefaRepositoryFake())
+            .ListarAsync(new ConsultaTarefasRequest { TamanhoPagina = tamanhoPagina }));
+    }
+
+    [Theory]
+    [InlineData("id")]
+    [InlineData("crescente")]
+    public async Task ListarAsync_OrdenacaoOuDirecaoInvalida_DeveRejeitar(string valor)
+    {
+        var service = CriarService(new TarefaRepositoryFake());
+        await Assert.ThrowsAsync<ArgumentException>(() => service.ListarAsync(new ConsultaTarefasRequest { OrdenarPor = valor }));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.ListarAsync(new ConsultaTarefasRequest { Direcao = valor }));
+    }
+
+    [Fact]
+    public async Task CriarAsync_DeveRegistrarHistoricoDeCriacaoNoMesmoSave()
+    {
+        var repositorio = new TarefaRepositoryFake();
+        var cancellationToken = new CancellationTokenSource().Token;
+
+        await CriarService(repositorio).CriarAsync(new CriarTarefaRequest
+        {
+            Descricao = "Nova tarefa"
+        }, cancellationToken);
+
+        var historico = Assert.IsType<HistoricoTarefa>(repositorio.HistoricoAdicionado);
+        Assert.Equal(TiposHistoricoTarefa.Criacao, historico.Tipo);
+        Assert.Equal(InstanteControlado.UtcDateTime, historico.CriadoEm);
+        Assert.Same(repositorio.TarefaAdicionada, historico.Tarefa);
+        Assert.Equal(1, repositorio.QuantidadeChamadasSalvarAlteracoes);
+        Assert.Equal(cancellationToken, repositorio.UltimoCancellationToken);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_AlterandoDescricao_DeveRegistrarValoresAnteriorENovo()
+    {
+        var tarefa = CriarTarefa(120, "DescriÃ§Ã£o anterior", "Pendente");
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = "DescriÃ§Ã£o nova",
+            Situacao = tarefa.Situacao
+        });
+
+        var historico = Assert.IsType<HistoricoTarefa>(repositorio.HistoricoAdicionado);
+        Assert.Equal(TiposHistoricoTarefa.AlteracaoDescricao, historico.Tipo);
+        Assert.Equal("Descricao", historico.Campo);
+        Assert.Equal("DescriÃ§Ã£o anterior", historico.ValorAnterior);
+        Assert.Equal("DescriÃ§Ã£o nova", historico.ValorNovo);
+        Assert.Equal(InstanteControlado.UtcDateTime, historico.CriadoEm);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ConcluindoTarefa_DeveRegistrarHistoricoDeConclusao()
+    {
+        var tarefa = CriarTarefa(121, "Concluir", "Em andamento");
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = SituacoesTarefa.Concluida
+        });
+
+        Assert.Equal(TiposHistoricoTarefa.Conclusao, repositorio.HistoricoAdicionado?.Tipo);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ReabrindoTarefa_DeveRegistrarHistoricoDeReabertura()
+    {
+        var tarefa = CriarTarefa(122, "Reabrir", SituacoesTarefa.Concluida);
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = "Pendente"
+        });
+
+        Assert.Equal(TiposHistoricoTarefa.Reabertura, repositorio.HistoricoAdicionado?.Tipo);
+    }
+
+    [Fact]
+    public async Task ExcluirLogicamenteAsync_DeveRegistrarHistoricoDeExclusao()
+    {
+        var tarefa = CriarTarefa(123, "Excluir", "Pendente");
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).ExcluirLogicamenteAsync(tarefa.Id);
+
+        Assert.Equal(TiposHistoricoTarefa.Exclusao, repositorio.HistoricoAdicionado?.Tipo);
+        Assert.Equal(InstanteControlado.UtcDateTime, repositorio.HistoricoAdicionado?.CriadoEm);
+    }
+
+    [Fact]
+    public async Task RestaurarAsync_DeveRegistrarHistoricoDeRestauracao()
+    {
+        var tarefa = CriarTarefa(124, "Restaurar", "Pendente");
+        tarefa.ExcluidaEm = InstanteControlado.UtcDateTime.AddDays(-1);
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaIncluindoExcluidas = tarefa };
+
+        await CriarService(repositorio).RestaurarAsync(tarefa.Id);
+
+        Assert.Equal(TiposHistoricoTarefa.Restauracao, repositorio.HistoricoAdicionado?.Tipo);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_SemAlteracoes_NaoDeveRegistrarHistorico()
+    {
+        var tarefa = CriarTarefa(125, "Sem alteraÃ§Ã£o", "Pendente");
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = tarefa.Situacao
+        });
+
+        Assert.Null(repositorio.HistoricoAdicionado);
+        Assert.Equal(0, repositorio.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task ListarHistoricoAsync_TarefaExcluida_DeveRetornarHistoricoNaOrdemDoRepositorio()
+    {
+        var tarefa = CriarTarefa(126, "Na lixeira", "Pendente");
+        tarefa.ExcluidaEm = InstanteControlado.UtcDateTime;
+        var maisRecente = new HistoricoTarefa { Id = 2, TarefaId = tarefa.Id, Tipo = TiposHistoricoTarefa.Exclusao, CriadoEm = InstanteControlado.UtcDateTime };
+        var maisAntigo = new HistoricoTarefa { Id = 1, TarefaId = tarefa.Id, Tipo = TiposHistoricoTarefa.Criacao, CriadoEm = InstanteControlado.UtcDateTime.AddDays(-1) };
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaIncluindoExcluidas = tarefa };
+        repositorio.HistoricoTarefas.AddRange([maisRecente, maisAntigo]);
+
+        var resultado = await CriarService(repositorio).ListarHistoricoAsync(tarefa.Id);
+
+        Assert.NotNull(resultado);
+        Assert.Collection(resultado,
+            item => Assert.Equal(TiposHistoricoTarefa.Exclusao, item.Tipo),
+            item => Assert.Equal(TiposHistoricoTarefa.Criacao, item.Tipo));
+        Assert.Equal(tarefa.Id, repositorio.UltimoIdHistoricoConsultado);
+    }
+
+    [Fact]
+    public async Task ListarHistoricoAsync_TarefaInexistente_NaoDeveConsultarHistorico()
+    {
+        var repositorio = new TarefaRepositoryFake();
+
+        var resultado = await CriarService(repositorio).ListarHistoricoAsync(999);
+
+        Assert.Null(resultado);
+        Assert.Equal(0, repositorio.QuantidadeChamadasListarHistorico);
+    }
+
+    [Fact]
+    public async Task CriarAsync_SemPrioridade_DeveUsarMediaEManterVencimentoNulo()
+    {
+        var repositorio = new TarefaRepositoryFake();
+
+        var resultado = await CriarService(repositorio).CriarAsync(new CriarTarefaRequest { Descricao = "Tarefa padr\u00e3o" });
+
+        Assert.Equal(PrioridadesTarefa.Media, resultado.Prioridade);
+        Assert.Null(resultado.DataVencimento);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_AlterandoPrioridadeEVencimento_DeveRegistrarHistoricosCorretos()
+    {
+        var tarefa = CriarTarefa(127, "Planejar", SituacoesTarefa.Pendente);
+        tarefa.DataVencimento = new DateOnly(2030, 1, 5);
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        var resultado = await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = tarefa.Situacao,
+            Prioridade = PrioridadesTarefa.Alta,
+            DataVencimento = new DateOnly(2030, 1, 7)
+        });
+
+        Assert.NotNull(resultado);
+        Assert.Equal(PrioridadesTarefa.Alta, resultado.Prioridade);
+        Assert.Equal(new DateOnly(2030, 1, 7), resultado.DataVencimento);
+        Assert.Collection(repositorio.HistoricoTarefas,
+            item =>
+            {
+                Assert.Equal(TiposHistoricoTarefa.AlteracaoPrioridade, item.Tipo);
+                Assert.Equal(PrioridadesTarefa.Media, item.ValorAnterior);
+                Assert.Equal(PrioridadesTarefa.Alta, item.ValorNovo);
+            },
+            item =>
+            {
+                Assert.Equal(TiposHistoricoTarefa.AlteracaoDataVencimento, item.Tipo);
+                Assert.Equal("2030-01-05", item.ValorAnterior);
+                Assert.Equal("2030-01-07", item.ValorNovo);
+            });
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_RemovendoVencimento_DeveRegistrarNovoValorNulo()
+    {
+        var tarefa = CriarTarefa(128, "Remover prazo", SituacoesTarefa.Pendente);
+        tarefa.DataVencimento = new DateOnly(2030, 1, 5);
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = tarefa.Situacao,
+            Prioridade = tarefa.Prioridade,
+            DataVencimento = null
+        });
+
+        var historico = Assert.Single(repositorio.HistoricoTarefas);
+        Assert.Equal(TiposHistoricoTarefa.AlteracaoDataVencimento, historico.Tipo);
+        Assert.Equal("2030-01-05", historico.ValorAnterior);
+        Assert.Null(historico.ValorNovo);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_SemMudancasNosNovosCampos_NaoDeveSalvar()
+    {
+        var tarefa = CriarTarefa(129, "Sem mudan\u00e7as", SituacoesTarefa.Pendente);
+        tarefa.DataVencimento = new DateOnly(2030, 1, 5);
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = tarefa.Situacao,
+            Prioridade = tarefa.Prioridade,
+            DataVencimento = tarefa.DataVencimento
+        });
+
+        Assert.Empty(repositorio.HistoricoTarefas);
+        Assert.Equal(0, repositorio.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task ListarAsync_FiltrosNovos_DeveNormalizarEUsarDataDoTimeProvider()
+    {
+        var repositorio = new TarefaRepositoryFake();
+
+        await CriarService(repositorio).ListarAsync(new ConsultaTarefasRequest
+        {
+            Prioridade = " alta ",
+            Prazo = "vencidas",
+            OrdenarPor = "dataVencimento"
+        });
+
+        var consulta = Assert.IsType<ConsultaTarefas>(repositorio.UltimaConsultaTarefas);
+        Assert.Equal(PrioridadesTarefa.Alta, consulta.Prioridade);
+        Assert.Equal(FiltroPrazoTarefa.Vencidas, consulta.Prazo);
+        Assert.Equal(CampoOrdenacaoTarefa.DataVencimento, consulta.OrdenarPor);
+        Assert.Equal(new DateOnly(2030, 1, 2), consulta.Hoje);
+    }
+
+    [Theory]
+    [InlineData("urgente")]
+    public async Task ListarAsync_PrioridadeInvalida_DeveRejeitar(string prioridade)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => CriarService(new TarefaRepositoryFake())
+            .ListarAsync(new ConsultaTarefasRequest { Prioridade = prioridade }));
+    }
+
     private static TarefaService CriarService(
         TarefaRepositoryFake tarefaRepository)
     {
         return new TarefaService(
             tarefaRepository,
-            NullLogger<TarefaService>.Instance
+            NullLogger<TarefaService>.Instance,
+            new TimeProviderFixo(InstanteControlado)
         );
     }
 
@@ -845,4 +1347,9 @@ public sealed class TarefaServiceTests
             ExcluidaEm = null
         };
     }
+}
+
+internal sealed class TimeProviderFixo(DateTimeOffset utcNow) : TimeProvider
+{
+    public override DateTimeOffset GetUtcNow() => utcNow;
 }

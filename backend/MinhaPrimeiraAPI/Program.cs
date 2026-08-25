@@ -15,6 +15,7 @@ var app = builder.Build();
 
 app.UseApplicationSwagger();
 app.UseApplicationRequestLogging();
+app.UseApplicationExceptionHandler();
 app.UseHttpsRedirection();
 app.UseApplicationCors();
 

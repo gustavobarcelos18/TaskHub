@@ -24,7 +24,8 @@ import {
 } from "../schemas/tarefa-schema";
 
 import { criarTarefa } from "../services/tarefa-service";
-import { SITUACOES_TAREFA } from "../types/tarefa";
+import { PRIORIDADES_TAREFA, SITUACOES_TAREFA } from "../types/tarefa";
+import { mascararDataCivil } from "../utils/formatar-data";
 
 export function FormularioTarefa() {
   const router = useRouter();
@@ -42,6 +43,8 @@ export function FormularioTarefa() {
     defaultValues: {
       descricao: "",
       situacao: "Pendente",
+      prioridade: "Media",
+      dataVencimento: "",
     },
   });
 
@@ -113,6 +116,35 @@ export function FormularioTarefa() {
                 </MenuItem>
               ))}
             </TextField>
+          )}
+        />
+
+        <Controller
+          name="prioridade"
+          control={control}
+          render={({ field }) => (
+            <TextField id="prioridade" label="Prioridade" select value={field.value} onChange={field.onChange} onBlur={field.onBlur} error={Boolean(errors.prioridade)} helperText={errors.prioridade?.message} fullWidth>
+              {PRIORIDADES_TAREFA.map((prioridade) => <MenuItem key={prioridade} value={prioridade}>{prioridade === "Media" ? "Média" : prioridade}</MenuItem>)}
+            </TextField>
+          )}
+        />
+
+        <Controller
+          name="dataVencimento"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              id="dataVencimento"
+              label="Data de vencimento"
+              placeholder="dd/mm/aaaa"
+              value={field.value}
+              onChange={(evento) => field.onChange(mascararDataCivil(evento.target.value))}
+              onBlur={field.onBlur}
+              slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }}
+              error={Boolean(errors.dataVencimento)}
+              helperText={errors.dataVencimento?.message ?? "Opcional"}
+              fullWidth
+            />
           )}
         />
 

@@ -25,7 +25,8 @@ import {
 } from "../schemas/tarefa-schema";
 
 import { atualizarTarefa } from "../services/tarefa-service";
-import { SITUACOES_TAREFA, type Tarefa } from "../types/tarefa";
+import { PRIORIDADES_TAREFA, SITUACOES_TAREFA, type Tarefa } from "../types/tarefa";
+import { converterDataParaFormulario, mascararDataCivil } from "../utils/formatar-data";
 
 type DialogoEditarTarefaProps = {
   tarefa: Tarefa;
@@ -53,6 +54,8 @@ export function DialogoEditarTarefa({
     defaultValues: {
       descricao: tarefa.descricao,
       situacao: tarefa.situacao,
+      prioridade: tarefa.prioridade,
+      dataVencimento: converterDataParaFormulario(tarefa.dataVencimento),
     },
   });
 
@@ -130,6 +133,35 @@ export function DialogoEditarTarefa({
             helperText={errors.descricao?.message}
             fullWidth
             {...register("descricao")}
+          />
+
+          <Controller
+            name="prioridade"
+            control={control}
+            render={({ field }) => (
+              <TextField id={`prioridade-${tarefa.id}`} label="Prioridade" select value={field.value} onChange={field.onChange} onBlur={field.onBlur} error={Boolean(errors.prioridade)} helperText={errors.prioridade?.message} fullWidth>
+                {PRIORIDADES_TAREFA.map((prioridade) => <MenuItem key={prioridade} value={prioridade}>{prioridade === "Media" ? "Média" : prioridade}</MenuItem>)}
+              </TextField>
+            )}
+          />
+
+          <Controller
+            name="dataVencimento"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                id={`dataVencimento-${tarefa.id}`}
+                label="Data de vencimento"
+                placeholder="dd/mm/aaaa"
+                value={field.value}
+                onChange={(evento) => field.onChange(mascararDataCivil(evento.target.value))}
+                onBlur={field.onBlur}
+                slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }}
+                error={Boolean(errors.dataVencimento)}
+                helperText={errors.dataVencimento?.message ?? "Opcional"}
+                fullWidth
+              />
+            )}
           />
 
           <Controller

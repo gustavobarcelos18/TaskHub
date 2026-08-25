@@ -9,6 +9,9 @@ public static class DependencyInjectionExtensions
         this IServiceCollection services)
     {
         services.AddControllers();
+        services.AddApplicationProblemDetails();
+
+        services.AddSingleton(TimeProvider.System);
 
         services.AddScoped<ITarefaRepository, TarefaRepository>();
         services.AddScoped<ITarefaService, TarefaService>();

@@ -6,7 +6,11 @@ public class Tarefa
 
     public string Descricao { get; set; } = string.Empty;
 
-    public string Situacao { get; set; } = "Pendente";
+    public string Situacao { get; set; } = SituacoesTarefa.Pendente;
+
+    public string Prioridade { get; set; } = PrioridadesTarefa.Media;
+
+    public DateOnly? DataVencimento { get; set; }
 
     public DateTime CriadaEm { get; set; }
 

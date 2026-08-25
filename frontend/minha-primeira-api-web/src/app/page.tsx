@@ -1,45 +1,104 @@
 import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
 import Container from "@mui/material/Container";
-import Paper from "@mui/material/Paper";
+import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { BotaoLink } from "@/components/ComponentesRoteador";
+import { AreaAcaoLink } from "@/components/ComponentesRoteador";
+import { obterResumoTarefas } from "@/features/tarefas/services/tarefa-service";
+import type { ResumoTarefas, SituacaoTarefa } from "@/features/tarefas/types/tarefa";
 
-export default function HomePage() {
+type IndicadorDashboard = {
+  titulo: string;
+  valor: number;
+  href: string;
+};
+
+function criarHrefTarefas(situacao?: SituacaoTarefa): string {
+  if (!situacao) {
+    return "/tarefas";
+  }
+
+  const parametros = new URLSearchParams({ situacao });
+  return `/tarefas?${parametros.toString()}`;
+}
+
+function criarIndicadores(resumo: ResumoTarefas): IndicadorDashboard[] {
+  return [
+    { titulo: "Total", valor: resumo.total, href: criarHrefTarefas() },
+    {
+      titulo: "Pendentes",
+      valor: resumo.pendentes,
+      href: criarHrefTarefas("Pendente"),
+    },
+    {
+      titulo: "Em andamento",
+      valor: resumo.emAndamento,
+      href: criarHrefTarefas("Em andamento"),
+    },
+    {
+      titulo: "Concluídas",
+      valor: resumo.concluidas,
+      href: criarHrefTarefas("Concluída"),
+    },
+  ];
+}
+
+export default async function HomePage() {
+  const resumo = await obterResumoTarefas();
+  const indicadores = criarIndicadores(resumo);
+
   return (
     <Box
       component="main"
       sx={{
         minHeight: "100vh",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         bgcolor: "background.default",
-        px: 4,
+        px: { xs: 2, sm: 4 },
+        py: { xs: 4, sm: 6 },
       }}
     >
-      <Container maxWidth="md">
-        <Paper
-          variant="outlined"
-          sx={{ p: { xs: 4, sm: 6 }, textAlign: "center" }}
-        >
-          <Typography variant="h1" component="h1" gutterBottom>
-            Gerenciador de Tarefas
-          </Typography>
+      <Container maxWidth="lg">
+        <Stack spacing={4}>
+          <Box>
+            <Typography variant="h1" component="h1" gutterBottom>
+              Gerenciador de Tarefas
+            </Typography>
 
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Organize suas atividades de forma simples e eficiente.
-          </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Visão geral das suas tarefas ativas.
+            </Typography>
+          </Box>
 
-          <BotaoLink
-            href="/tarefas"
-            variant="contained"
-            size="large"
-            endIcon={<ArrowForwardIcon />}
-          >
-            Acessar tarefas
-          </BotaoLink>
-        </Paper>
+          <Grid container spacing={3}>
+            {indicadores.map((indicador) => (
+              <Grid key={indicador.titulo} size={{ xs: 12, sm: 6, lg: 3 }}>
+                <Card variant="outlined" sx={{ height: "100%" }}>
+                  <AreaAcaoLink
+                    href={indicador.href}
+                    sx={{ height: "100%", alignItems: "stretch" }}
+                  >
+                    <CardContent>
+                      <Typography
+                        variant="overline"
+                        color="text.secondary"
+                        component="p"
+                      >
+                        {indicador.titulo}
+                      </Typography>
+
+                      <Typography variant="h2" component="p">
+                        {indicador.valor}
+                      </Typography>
+                    </CardContent>
+                  </AreaAcaoLink>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Stack>
       </Container>
     </Box>
   );

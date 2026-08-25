@@ -14,4 +14,13 @@ public class CriarTarefaRequest
         ErrorMessage = "A situação da tarefa é inválida."
     )]
     public string? Situacao { get; set; }
+
+    [MaxLength(10, ErrorMessage = "A prioridade da tarefa deve ter no m\u00e1ximo 10 caracteres.")]
+    [RegularExpression(
+        @"^\s*(?i:baixa|media|alta)\s*$",
+        ErrorMessage = "A prioridade da tarefa \u00e9 inv\u00e1lida."
+    )]
+    public string? Prioridade { get; set; }
+
+    public DateOnly? DataVencimento { get; set; }
 }
