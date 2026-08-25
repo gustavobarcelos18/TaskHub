@@ -15,6 +15,7 @@ export type PrazoTarefa = (typeof PRAZOS_TAREFA)[number];
 export type Tarefa = {
   id: number;
   descricao: string;
+  observacoes: string | null;
   situacao: SituacaoTarefa;
   prioridade: PrioridadeTarefa;
   dataVencimento: string | null;
@@ -23,13 +24,19 @@ export type Tarefa = {
   situacaoAlteradaEm: string;
   concluidaEm: string | null;
   excluidaEm: string | null;
+  etiquetas: Etiqueta[];
 };
+
+export type Etiqueta = { id: number; nome: string };
 
 export const TIPOS_HISTORICO_TAREFA = [
   "Criacao",
   "AlteracaoDescricao",
+  "AlteracaoObservacoes",
+  "AlteracaoEtiquetas",
   "AlteracaoPrioridade",
   "AlteracaoDataVencimento",
+  "AlteracaoSituacao",
   "Conclusao",
   "Reabertura",
   "Exclusao",
@@ -55,6 +62,7 @@ export type ConsultaTarefas = {
   situacao?: SituacaoTarefa;
   prioridade?: PrioridadeTarefa;
   prazo?: PrazoTarefa;
+  etiquetaId?: number;
   ordenarPor?: OrdenarTarefasPor;
   direcao?: DirecaoOrdenacao;
   pagina?: number;
@@ -74,4 +82,7 @@ export type ResumoTarefas = {
   pendentes: number;
   emAndamento: number;
   concluidas: number;
+  vencidas: number;
+  vencemHoje: number;
+  proximas: number;
 };

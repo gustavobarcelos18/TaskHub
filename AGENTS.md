@@ -120,3 +120,9 @@ Não trate esses níveis como equivalentes.
 - Prefira afirmações verificáveis, como “todos os testes existentes passaram”, “o build concluiu sem erros” e “não foram observadas regressões nos cenários verificados”.
 - Não altere código apenas para demonstrar atividade. Uma parte correta pode permanecer sem mudanças.
 - Priorize clareza, consistência, simplicidade, testabilidade, manutenção e ausência de regressões conhecidas.
+
+## 16. Diário de trabalho
+
+- Mantenha o arquivo `DIARIO.md` atualizado a cada tarefa ou etapa relevante concluída.
+- Registre a data, as alterações e atualizações realizadas, as validações executadas e eventuais pendências ou limitações.
+- Não omita alterações feitas no repositório durante o trabalho. Preserve os registros anteriores e adicione novos itens em ordem cronológica.

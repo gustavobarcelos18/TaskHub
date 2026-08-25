@@ -14,6 +14,8 @@ public class AppDbContext : DbContext
 
     public DbSet<HistoricoTarefa> HistoricosTarefas => Set<HistoricoTarefa>();
 
+    public DbSet<Etiqueta> Etiquetas => Set<Etiqueta>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -32,6 +34,10 @@ public class AppDbContext : DbContext
                 .HasColumnName("DESCRICAO")
                 .HasMaxLength(200)
                 .IsRequired();
+
+            entity.Property(tarefa => tarefa.Observacoes)
+                .HasColumnName("OBSERVACOES")
+                .HasMaxLength(4000);
 
             entity.Property(tarefa => tarefa.Situacao)
                 .HasColumnName("SITUACAO")
@@ -94,11 +100,11 @@ public class AppDbContext : DbContext
 
             entity.Property(historico => historico.ValorAnterior)
                 .HasColumnName("VALOR_ANTERIOR")
-                .HasMaxLength(200);
+                .HasMaxLength(4000);
 
             entity.Property(historico => historico.ValorNovo)
                 .HasColumnName("VALOR_NOVO")
-                .HasMaxLength(200);
+                .HasMaxLength(4000);
 
             entity.Property(historico => historico.CriadoEm)
                 .HasColumnName("CRIADO_EM")
@@ -113,5 +119,28 @@ public class AppDbContext : DbContext
 
             entity.HasQueryFilter(historico => historico.Tarefa.ExcluidaEm == null);
         });
+
+        modelBuilder.Entity<Etiqueta>(entity =>
+        {
+            entity.ToTable("ETIQUETAS");
+            entity.HasKey(etiqueta => etiqueta.Id);
+            entity.Property(etiqueta => etiqueta.Id).HasColumnName("ID").ValueGeneratedOnAdd();
+            entity.Property(etiqueta => etiqueta.Nome).HasColumnName("NOME").HasMaxLength(50).IsRequired();
+            entity.Property(etiqueta => etiqueta.NomeNormalizado).HasColumnName("NOME_NORMALIZADO").HasMaxLength(50).IsRequired();
+            entity.HasIndex(etiqueta => etiqueta.NomeNormalizado).IsUnique();
+        });
+
+        modelBuilder.Entity<Tarefa>()
+            .HasMany(tarefa => tarefa.Etiquetas)
+            .WithMany(etiqueta => etiqueta.Tarefas)
+            .UsingEntity<Dictionary<string, object>>(
+                "TarefaEtiqueta",
+                direita => direita.HasOne<Etiqueta>().WithMany().HasForeignKey("ETIQUETA_ID").OnDelete(DeleteBehavior.Cascade),
+                esquerda => esquerda.HasOne<Tarefa>().WithMany().HasForeignKey("TAREFA_ID").OnDelete(DeleteBehavior.Cascade),
+                associacao =>
+                {
+                    associacao.ToTable("TAREFA_ETIQUETA");
+                    associacao.HasKey("TAREFA_ID", "ETIQUETA_ID");
+                });
     }
 }

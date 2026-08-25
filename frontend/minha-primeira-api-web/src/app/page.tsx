@@ -15,12 +15,13 @@ type IndicadorDashboard = {
   href: string;
 };
 
-function criarHrefTarefas(situacao?: SituacaoTarefa): string {
-  if (!situacao) {
-    return "/tarefas";
-  }
+function criarHrefTarefas(situacao?: SituacaoTarefa, prazo?: string): string {
+  const parametros = new URLSearchParams();
+  if (situacao) parametros.set("situacao", situacao);
+  if (prazo) parametros.set("prazo", prazo);
 
-  const parametros = new URLSearchParams({ situacao });
+  if (parametros.size === 0) return "/tarefas";
+
   return `/tarefas?${parametros.toString()}`;
 }
 
@@ -42,6 +43,9 @@ function criarIndicadores(resumo: ResumoTarefas): IndicadorDashboard[] {
       valor: resumo.concluidas,
       href: criarHrefTarefas("Concluída"),
     },
+    { titulo: "Vencidas", valor: resumo.vencidas, href: criarHrefTarefas(undefined, "vencidas") },
+    { titulo: "Vencem hoje", valor: resumo.vencemHoje, href: criarHrefTarefas(undefined, "vencemHoje") },
+    { titulo: "Próximas", valor: resumo.proximas, href: criarHrefTarefas(undefined, "proximas") },
   ];
 }
 

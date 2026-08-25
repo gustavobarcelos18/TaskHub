@@ -6,6 +6,8 @@ public class TarefaResponse
 
     public string Descricao { get; set; } = string.Empty;
 
+    public string? Observacoes { get; set; }
+
     public string Situacao { get; set; } = string.Empty;
 
     public string Prioridade { get; set; } = string.Empty;
@@ -21,4 +23,6 @@ public class TarefaResponse
     public DateTime? ConcluidaEm { get; set; }
 
     public DateTime? ExcluidaEm { get; set; }
+
+    public List<EtiquetaResponse> Etiquetas { get; set; } = [];
 }

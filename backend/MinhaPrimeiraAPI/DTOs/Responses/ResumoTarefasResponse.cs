@@ -9,4 +9,10 @@ public sealed class ResumoTarefasResponse
     public int EmAndamento { get; init; }
 
     public int Concluidas { get; init; }
+
+    public int Vencidas { get; init; }
+
+    public int VencemHoje { get; init; }
+
+    public int Proximas { get; init; }
 }

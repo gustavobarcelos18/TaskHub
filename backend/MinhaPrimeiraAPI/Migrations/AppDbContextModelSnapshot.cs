@@ -17,6 +17,33 @@ namespace MinhaPrimeiraAPI.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
 
+            modelBuilder.Entity("MinhaPrimeiraAPI.Models.Etiqueta", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("ID");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("NOME");
+
+                    b.Property<string>("NomeNormalizado")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("NOME_NORMALIZADO");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NomeNormalizado")
+                        .IsUnique();
+
+                    b.ToTable("ETIQUETAS", (string)null);
+                });
+
             modelBuilder.Entity("MinhaPrimeiraAPI.Models.HistoricoTarefa", b =>
                 {
                     b.Property<int>("Id")
@@ -44,12 +71,12 @@ namespace MinhaPrimeiraAPI.Migrations
                         .HasColumnName("TIPO");
 
                     b.Property<string>("ValorAnterior")
-                        .HasMaxLength(200)
+                        .HasMaxLength(4000)
                         .HasColumnType("TEXT")
                         .HasColumnName("VALOR_ANTERIOR");
 
                     b.Property<string>("ValorNovo")
-                        .HasMaxLength(200)
+                        .HasMaxLength(4000)
                         .HasColumnType("TEXT")
                         .HasColumnName("VALOR_NOVO");
 
@@ -93,6 +120,11 @@ namespace MinhaPrimeiraAPI.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("MODIFICADA_EM");
 
+                    b.Property<string>("Observacoes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("OBSERVACOES");
+
                     b.Property<string>("Prioridade")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -116,6 +148,21 @@ namespace MinhaPrimeiraAPI.Migrations
                     b.ToTable("TAREFAS", (string)null);
                 });
 
+            modelBuilder.Entity("TarefaEtiqueta", b =>
+                {
+                    b.Property<int>("TAREFA_ID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ETIQUETA_ID")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("TAREFA_ID", "ETIQUETA_ID");
+
+                    b.HasIndex("ETIQUETA_ID");
+
+                    b.ToTable("TAREFA_ETIQUETA", (string)null);
+                });
+
             modelBuilder.Entity("MinhaPrimeiraAPI.Models.HistoricoTarefa", b =>
                 {
                     b.HasOne("MinhaPrimeiraAPI.Models.Tarefa", "Tarefa")
@@ -125,6 +172,21 @@ namespace MinhaPrimeiraAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("Tarefa");
+                });
+
+            modelBuilder.Entity("TarefaEtiqueta", b =>
+                {
+                    b.HasOne("MinhaPrimeiraAPI.Models.Etiqueta", null)
+                        .WithMany()
+                        .HasForeignKey("ETIQUETA_ID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MinhaPrimeiraAPI.Models.Tarefa", null)
+                        .WithMany()
+                        .HasForeignKey("TAREFA_ID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

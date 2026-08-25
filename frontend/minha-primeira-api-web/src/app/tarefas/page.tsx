@@ -11,6 +11,7 @@ import {
 } from "@/components/ComponentesRoteador";
 import { TabelaTarefas } from "@/features/tarefas/components/TabelaTarefas";
 import { listarTarefas } from "@/features/tarefas/services/tarefa-service";
+import { listarEtiquetas } from "@/features/tarefas/services/etiqueta-service";
 import { PRAZOS_TAREFA, PRIORIDADES_TAREFA, SITUACOES_TAREFA, type ConsultaTarefas, type DirecaoOrdenacao, type OrdenarTarefasPor, type PrazoTarefa, type PrioridadeTarefa, type SituacaoTarefa } from "@/features/tarefas/types/tarefa";
 
 type TarefasPageProps = {
@@ -33,12 +34,13 @@ export default async function TarefasPage({ searchParams }: TarefasPageProps) {
     situacao: obterValorValido<SituacaoTarefa>(parametros.situacao, SITUACOES_TAREFA),
     prioridade: obterValorValido<PrioridadeTarefa>(parametros.prioridade, PRIORIDADES_TAREFA),
     prazo: obterValorValido<PrazoTarefa>(parametros.prazo, PRAZOS_TAREFA),
+    etiquetaId: obterNumero(parametros.etiquetaId),
     ordenarPor: obterValorValido<OrdenarTarefasPor>(parametros.ordenarPor, ["descricao", "situacao", "prioridade", "dataVencimento", "ultimaAtualizacao"]),
     direcao: obterValorValido<DirecaoOrdenacao>(parametros.direcao, ["asc", "desc"]),
     pagina: obterNumero(parametros.pagina),
     tamanhoPagina: obterNumero(parametros.tamanhoPagina),
   };
-  const tarefas = await listarTarefas(consulta);
+  const [tarefas, etiquetas] = await Promise.all([listarTarefas(consulta), listarEtiquetas()]);
 
   return (
     <Box
@@ -101,7 +103,7 @@ export default async function TarefasPage({ searchParams }: TarefasPageProps) {
             </Stack>
           </Stack>
 
-          <TabelaTarefas resultado={tarefas} consulta={consulta} />
+          <TabelaTarefas resultado={tarefas} consulta={consulta} etiquetas={etiquetas} />
         </Stack>
       </Container>
     </Box>

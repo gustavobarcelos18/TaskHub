@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging.Abstractions;
 using MinhaPrimeiraAPI.DTOs.Requests;
 using MinhaPrimeiraAPI.Models;
@@ -1113,7 +1114,11 @@ public sealed class TarefaServiceTests
             Situacao = SituacoesTarefa.Concluida
         });
 
-        Assert.Equal(TiposHistoricoTarefa.Conclusao, repositorio.HistoricoAdicionado?.Tipo);
+        var historico = Assert.IsType<HistoricoTarefa>(repositorio.HistoricoAdicionado);
+        Assert.Equal(TiposHistoricoTarefa.Conclusao, historico.Tipo);
+        Assert.Equal("Situacao", historico.Campo);
+        Assert.Equal(SituacoesTarefa.EmAndamento, historico.ValorAnterior);
+        Assert.Equal(SituacoesTarefa.Concluida, historico.ValorNovo);
     }
 
     [Fact]
@@ -1128,7 +1133,113 @@ public sealed class TarefaServiceTests
             Situacao = "Pendente"
         });
 
-        Assert.Equal(TiposHistoricoTarefa.Reabertura, repositorio.HistoricoAdicionado?.Tipo);
+        var historico = Assert.IsType<HistoricoTarefa>(repositorio.HistoricoAdicionado);
+        Assert.Equal(TiposHistoricoTarefa.Reabertura, historico.Tipo);
+        Assert.Equal("Situacao", historico.Campo);
+        Assert.Equal(SituacoesTarefa.Concluida, historico.ValorAnterior);
+        Assert.Equal(SituacoesTarefa.Pendente, historico.ValorNovo);
+    }
+
+    [Theory]
+    [InlineData(SituacoesTarefa.Pendente, SituacoesTarefa.EmAndamento, TiposHistoricoTarefa.AlteracaoSituacao, false)]
+    [InlineData(SituacoesTarefa.Pendente, SituacoesTarefa.Concluida, TiposHistoricoTarefa.Conclusao, true)]
+    [InlineData(SituacoesTarefa.EmAndamento, SituacoesTarefa.Pendente, TiposHistoricoTarefa.AlteracaoSituacao, false)]
+    [InlineData(SituacoesTarefa.EmAndamento, SituacoesTarefa.Concluida, TiposHistoricoTarefa.Conclusao, true)]
+    [InlineData(SituacoesTarefa.Concluida, SituacoesTarefa.Pendente, TiposHistoricoTarefa.Reabertura, false)]
+    [InlineData(SituacoesTarefa.Concluida, SituacoesTarefa.EmAndamento, TiposHistoricoTarefa.Reabertura, false)]
+    public async Task AtualizarAsync_TransicoesPermitidas_DevemSerAuditadas(
+        string origem,
+        string destino,
+        string tipoHistorico,
+        bool deveConcluir)
+    {
+        var tarefa = CriarTarefa(130, "Transição", origem);
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        var resultado = await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = destino
+        });
+
+        var historico = Assert.Single(repositorio.HistoricoTarefas);
+        Assert.NotNull(resultado);
+        Assert.Equal(destino, resultado.Situacao);
+        Assert.Equal(tipoHistorico, historico.Tipo);
+        Assert.Equal("Situacao", historico.Campo);
+        Assert.Equal(origem, historico.ValorAnterior);
+        Assert.Equal(destino, historico.ValorNovo);
+        Assert.Equal(InstanteControlado.UtcDateTime, historico.CriadoEm);
+        Assert.Equal(InstanteControlado.UtcDateTime, resultado.SituacaoAlteradaEm);
+        Assert.Equal(deveConcluir ? InstanteControlado.UtcDateTime : null, resultado.ConcluidaEm);
+        Assert.Equal(1, repositorio.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Theory]
+    [InlineData(SituacoesTarefa.Pendente)]
+    [InlineData(SituacoesTarefa.EmAndamento)]
+    [InlineData(SituacoesTarefa.Concluida)]
+    public async Task AtualizarAsync_MesmaSituacao_NaoDeveGerarHistoricoNemAlterarDatas(string situacao)
+    {
+        var tarefa = CriarTarefa(131, "Sem transição", situacao);
+        var modificadaEm = tarefa.ModificadaEm;
+        var situacaoAlteradaEm = tarefa.SituacaoAlteradaEm;
+        var concluidaEm = tarefa.ConcluidaEm;
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = situacao
+        });
+
+        Assert.Empty(repositorio.HistoricoTarefas);
+        Assert.Equal(modificadaEm, tarefa.ModificadaEm);
+        Assert.Equal(situacaoAlteradaEm, tarefa.SituacaoAlteradaEm);
+        Assert.Equal(concluidaEm, tarefa.ConcluidaEm);
+        Assert.Equal(0, repositorio.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ReentrandoEmConcluida_DevePreservarHistoricoEDefinirNovaData()
+    {
+        var tarefa = CriarTarefa(132, "Novo ciclo", SituacoesTarefa.Pendente);
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+        var primeiraConclusao = InstanteControlado.AddHours(1);
+        var reabertura = primeiraConclusao.AddHours(1);
+        var segundaConclusao = reabertura.AddHours(1);
+
+        await CriarService(repositorio, new TimeProviderFixo(primeiraConclusao)).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest { Descricao = tarefa.Descricao, Situacao = SituacoesTarefa.Concluida });
+        await CriarService(repositorio, new TimeProviderFixo(reabertura)).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest { Descricao = tarefa.Descricao, Situacao = SituacoesTarefa.Pendente });
+        var resultado = await CriarService(repositorio, new TimeProviderFixo(segundaConclusao)).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest { Descricao = tarefa.Descricao, Situacao = SituacoesTarefa.Concluida });
+
+        Assert.NotNull(resultado);
+        Assert.Equal(segundaConclusao.UtcDateTime, resultado.ConcluidaEm);
+        Assert.Equal(2, repositorio.HistoricoTarefas.Count(item => item.Tipo == TiposHistoricoTarefa.Conclusao));
+        Assert.Collection(repositorio.HistoricoTarefas,
+            item => Assert.Equal(primeiraConclusao.UtcDateTime, item.CriadoEm),
+            item => Assert.Equal(TiposHistoricoTarefa.Reabertura, item.Tipo),
+            item => Assert.Equal(segundaConclusao.UtcDateTime, item.CriadoEm));
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_AlteracoesMultiplas_DevemRegistrarCadaHistoricoEmUmUnicoSave()
+    {
+        var tarefa = CriarTarefa(133, "Antes", SituacoesTarefa.Pendente);
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = "Depois",
+            Situacao = SituacoesTarefa.EmAndamento,
+            Prioridade = PrioridadesTarefa.Alta
+        });
+
+        Assert.Equal(3, repositorio.HistoricoTarefas.Count);
+        Assert.Contains(repositorio.HistoricoTarefas, item => item.Tipo == TiposHistoricoTarefa.AlteracaoDescricao);
+        Assert.Contains(repositorio.HistoricoTarefas, item => item.Tipo == TiposHistoricoTarefa.AlteracaoPrioridade);
+        Assert.Contains(repositorio.HistoricoTarefas, item => item.Tipo == TiposHistoricoTarefa.AlteracaoSituacao && item.ValorAnterior == SituacoesTarefa.Pendente && item.ValorNovo == SituacoesTarefa.EmAndamento);
+        Assert.Equal(1, repositorio.QuantidadeChamadasSalvarAlteracoes);
     }
 
     [Fact]
@@ -1312,13 +1423,122 @@ public sealed class TarefaServiceTests
             .ListarAsync(new ConsultaTarefasRequest { Prioridade = prioridade }));
     }
 
+    [Fact]
+    public async Task CriarAsync_ObservacoesAusentesOuComWhitespace_DevePersistirNulo()
+    {
+        var repositorio = new TarefaRepositoryFake();
+
+        var semObservacoes = await CriarService(repositorio).CriarAsync(new CriarTarefaRequest { Descricao = "Sem observações" });
+        var somenteEspacos = await CriarService(repositorio).CriarAsync(new CriarTarefaRequest { Descricao = "Espaços", Observacoes = "   " });
+
+        Assert.Null(semObservacoes.Observacoes);
+        Assert.Null(somenteEspacos.Observacoes);
+    }
+
+    [Fact]
+    public async Task CriarAsync_ObservacoesComEspacos_DeveNormalizar()
+    {
+        var resultado = await CriarService(new TarefaRepositoryFake()).CriarAsync(new CriarTarefaRequest
+        {
+            Descricao = "Com observações",
+            Observacoes = "  Primeiro item\nSegundo item  "
+        });
+
+        Assert.Equal("Primeiro item\nSegundo item", resultado.Observacoes);
+    }
+
+    [Fact]
+    public void CriarTarefaRequest_ObservacoesAcimaDoLimite_DeveSerInvalido()
+    {
+        var request = new CriarTarefaRequest { Descricao = "Limite", Observacoes = new string('a', 4001) };
+        var resultados = new List<ValidationResult>();
+
+        var valido = Validator.TryValidateObject(request, new ValidationContext(request), resultados, validateAllProperties: true);
+
+        Assert.False(valido);
+        Assert.Contains(resultados, resultado => resultado.ErrorMessage == "As observações da tarefa devem ter no máximo 4000 caracteres.");
+    }
+
+    [Theory]
+    [InlineData(null, "Nova observação", null, "Nova observação")]
+    [InlineData("Anterior", "Outra observação", "Anterior", "Outra observação")]
+    [InlineData("Anterior", "   ", "Anterior", null)]
+    public async Task AtualizarAsync_AlterandoObservacoes_DeveRegistrarHistorico(
+        string? observacoesAtuais,
+        string? novasObservacoes,
+        string? valorAnteriorEsperado,
+        string? valorNovoEsperado)
+    {
+        var tarefa = CriarTarefa(130, "Observações", SituacoesTarefa.Pendente);
+        tarefa.Observacoes = observacoesAtuais;
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        var resultado = await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = tarefa.Situacao,
+            Prioridade = tarefa.Prioridade,
+            Observacoes = novasObservacoes
+        });
+
+        var historico = Assert.Single(repositorio.HistoricoTarefas);
+        Assert.Equal(TiposHistoricoTarefa.AlteracaoObservacoes, historico.Tipo);
+        Assert.Equal("Observacoes", historico.Campo);
+        Assert.Equal(valorAnteriorEsperado, historico.ValorAnterior);
+        Assert.Equal(valorNovoEsperado, historico.ValorNovo);
+        Assert.Equal(valorNovoEsperado, resultado?.Observacoes);
+        Assert.Equal(1, repositorio.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ObservacoesNormalizadasIguais_NaoDeveSalvarNemGerarHistorico()
+    {
+        var tarefa = CriarTarefa(131, "Sem alteração", SituacoesTarefa.Pendente);
+        tarefa.Observacoes = "Teste";
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = tarefa.Descricao,
+            Situacao = tarefa.Situacao,
+            Prioridade = tarefa.Prioridade,
+            Observacoes = "  Teste  "
+        });
+
+        Assert.Empty(repositorio.HistoricoTarefas);
+        Assert.Equal(0, repositorio.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_DescricaoPrioridadeEObservacoes_DeveRegistrarCadaHistoricoEmUmUnicoSave()
+    {
+        var tarefa = CriarTarefa(132, "Antes", SituacoesTarefa.Pendente);
+        tarefa.Prioridade = PrioridadesTarefa.Baixa;
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
+        {
+            Descricao = "Depois",
+            Situacao = tarefa.Situacao,
+            Prioridade = PrioridadesTarefa.Alta,
+            Observacoes = "Detalhe"
+        });
+
+        Assert.Equal(3, repositorio.HistoricoTarefas.Count);
+        Assert.Contains(repositorio.HistoricoTarefas, item => item.Tipo == TiposHistoricoTarefa.AlteracaoDescricao);
+        Assert.Contains(repositorio.HistoricoTarefas, item => item.Tipo == TiposHistoricoTarefa.AlteracaoPrioridade);
+        Assert.Contains(repositorio.HistoricoTarefas, item => item.Tipo == TiposHistoricoTarefa.AlteracaoObservacoes);
+        Assert.Equal(1, repositorio.QuantidadeChamadasSalvarAlteracoes);
+    }
+
     private static TarefaService CriarService(
-        TarefaRepositoryFake tarefaRepository)
+        TarefaRepositoryFake tarefaRepository,
+        TimeProvider? timeProvider = null)
     {
         return new TarefaService(
             tarefaRepository,
             NullLogger<TarefaService>.Instance,
-            new TimeProviderFixo(InstanteControlado)
+            timeProvider ?? new TimeProviderFixo(InstanteControlado)
         );
     }
 

@@ -19,6 +19,7 @@
 **/Database/*.db-wal
 **/Database/*.sqlite
 **/Database/*.sqlite3
+backups/
 
 # ==========================================
 # Logs

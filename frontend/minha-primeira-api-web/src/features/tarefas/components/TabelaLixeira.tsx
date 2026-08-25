@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
+import Snackbar from "@mui/material/Snackbar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -36,6 +37,7 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
   const [tarefaSelecionada, setTarefaSelecionada] = useState<Tarefa | null>(null);
   const [processandoId, setProcessandoId] = useState<number | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   function removerDaLista(tarefaId: number) {
     setTarefas((tarefasAtuais) =>
@@ -49,6 +51,7 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
       setErro(null);
       await restaurarTarefa(tarefa.id);
       removerDaLista(tarefa.id);
+      setFeedback("Tarefa restaurada com sucesso.");
     } catch (erro) {
       setErro(erro instanceof Error ? erro.message : "Não foi possível restaurar a tarefa.");
     } finally {
@@ -65,6 +68,7 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
       await excluirTarefaPermanentemente(tarefaSelecionada.id);
       removerDaLista(tarefaSelecionada.id);
       setTarefaSelecionada(null);
+      setFeedback("Tarefa excluída permanentemente.");
     } catch (erro) {
       setErro(erro instanceof Error ? erro.message : "Não foi possível excluir permanentemente a tarefa.");
     } finally {
@@ -139,6 +143,9 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
           <DialogContentText>
             A tarefa “{tarefaSelecionada?.descricao}” será removida permanentemente e esta ação não poderá ser desfeita.
           </DialogContentText>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Todo o histórico desta tarefa também será removido. Não será possível restaurá-la.
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button disabled={processandoId !== null} onClick={() => setTarefaSelecionada(null)}>Cancelar</Button>
@@ -153,6 +160,9 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
           </Button>
         </DialogActions>
       </Dialog>
+      <Snackbar open={feedback !== null} autoHideDuration={4000} onClose={() => setFeedback(null)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+        <Alert severity="success" variant="filled" onClose={() => setFeedback(null)}>{feedback}</Alert>
+      </Snackbar>
     </>
   );
 }

@@ -7,6 +7,7 @@ namespace MinhaPrimeiraAPI.Controllers;
 
 [ApiController]
 [Route("api/tarefas")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public class TarefasController : ControllerBase
 {
     private readonly ITarefaService _tarefaService;
@@ -21,8 +22,15 @@ public class TarefasController : ControllerBase
     }
 
     /// <summary>
-    /// Lista todas as tarefas ativas.
+    /// Lista tarefas ativas com filtros, ordenação e paginação.
     /// </summary>
+    /// <remarks>
+    /// Parâmetros opcionais: busca, situacao (Pendente, Em andamento ou Concluída), prioridade
+    /// (Baixa, Media ou Alta), prazo (vencidas, vencemHoje, proximas ou semVencimento),
+    /// ordenarPor (descricao, situacao, prioridade, dataVencimento ou ultimaAtualizacao),
+    /// direcao (asc ou desc), pagina e tamanhoPagina. Os padrões são página 1, tamanho 10,
+    /// ultimaAtualizacao e desc.
+    /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(TarefasPaginadasResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

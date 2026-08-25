@@ -8,6 +8,9 @@ public class CriarTarefaRequest
     [MaxLength(200, ErrorMessage = "A descrição da tarefa deve ter no máximo 200 caracteres.")]
     public string Descricao { get; set; } = string.Empty;
 
+    [MaxLength(4000, ErrorMessage = "As observações da tarefa devem ter no máximo 4000 caracteres.")]
+    public string? Observacoes { get; set; }
+
     [MaxLength(30, ErrorMessage = "A situação da tarefa deve ter no máximo 30 caracteres.")]
     [RegularExpression(
         @"^\s*(?i:pendente|em andamento|concluída)\s*$",
@@ -23,4 +26,6 @@ public class CriarTarefaRequest
     public string? Prioridade { get; set; }
 
     public DateOnly? DataVencimento { get; set; }
+
+    public List<int> EtiquetaIds { get; set; } = [];
 }

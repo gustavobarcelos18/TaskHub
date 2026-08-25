@@ -19,6 +19,7 @@ import Typography from "@mui/material/Typography";
 
 import {
   LIMITE_DESCRICAO_TAREFA,
+  LIMITE_OBSERVACOES_TAREFA,
   tarefaSchema,
   type TarefaFormData,
 } from "../schemas/tarefa-schema";
@@ -26,6 +27,7 @@ import {
 import { criarTarefa } from "../services/tarefa-service";
 import { PRIORIDADES_TAREFA, SITUACOES_TAREFA } from "../types/tarefa";
 import { mascararDataCivil } from "../utils/formatar-data";
+import { SeletorEtiquetas } from "./SeletorEtiquetas";
 
 export function FormularioTarefa() {
   const router = useRouter();
@@ -42,9 +44,11 @@ export function FormularioTarefa() {
 
     defaultValues: {
       descricao: "",
+      observacoes: "",
       situacao: "Pendente",
       prioridade: "Media",
       dataVencimento: "",
+      etiquetaIds: [],
     },
   });
 
@@ -54,7 +58,7 @@ export function FormularioTarefa() {
 
       await criarTarefa(dados);
 
-      router.push("/tarefas");
+      router.push("/tarefas?feedback=tarefaCriada");
     } catch (erro) {
       const mensagem =
         erro instanceof Error
@@ -128,6 +132,21 @@ export function FormularioTarefa() {
             </TextField>
           )}
         />
+
+        <TextField
+          id="observacoes"
+          label="Observações"
+          placeholder="Adicione detalhes complementares da tarefa"
+          multiline
+          minRows={4}
+          slotProps={{ htmlInput: { maxLength: LIMITE_OBSERVACOES_TAREFA } }}
+          error={Boolean(errors.observacoes)}
+          helperText={errors.observacoes?.message ?? `Opcional. Máximo de ${LIMITE_OBSERVACOES_TAREFA} caracteres.`}
+          fullWidth
+          {...register("observacoes")}
+        />
+
+        <SeletorEtiquetas control={control} />
 
         <Controller
           name="dataVencimento"

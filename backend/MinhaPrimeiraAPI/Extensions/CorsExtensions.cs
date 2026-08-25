@@ -11,7 +11,25 @@ public static class CorsExtensions
         var origensPermitidas = configuration
             .GetSection("Cors:AllowedOrigins")
             .Get<string[]>()
-            ?? new[] { "http://localhost:5173" };
+            ?.Where(origem => !string.IsNullOrWhiteSpace(origem))
+            .Select(origem => origem.Trim())
+            .ToArray();
+
+        if (origensPermitidas is not { Length: > 0 })
+        {
+            throw new InvalidOperationException(
+                "A configuração 'Cors:AllowedOrigins' precisa conter ao menos uma origem."
+            );
+        }
+
+        if (origensPermitidas.Any(origem =>
+            !Uri.TryCreate(origem, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)))
+        {
+            throw new InvalidOperationException(
+                "Cada origem em 'Cors:AllowedOrigins' precisa ser uma URL HTTP ou HTTPS absoluta."
+            );
+        }
 
         services.AddCors(options =>
         {

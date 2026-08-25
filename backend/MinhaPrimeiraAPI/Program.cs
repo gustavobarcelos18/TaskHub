@@ -5,26 +5,31 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddApplicationLogging();
 
-builder.Services
-    .AddApplicationDatabase(builder.Configuration)
-    .AddApplicationServices()
-    .AddApplicationSwagger()
-    .AddApplicationCors(builder.Configuration);
-
-var app = builder.Build();
-
-app.UseApplicationSwagger();
-app.UseApplicationRequestLogging();
-app.UseApplicationExceptionHandler();
-app.UseHttpsRedirection();
-app.UseApplicationCors();
-
-app.MapControllers();
-
 try
 {
+    builder.Services
+        .AddApplicationDatabase(builder.Configuration, builder.Environment)
+        .AddApplicationServices()
+        .AddApplicationSwagger()
+        .AddApplicationCors(builder.Configuration)
+        .AddApplicationHealthChecks();
+
+    var app = builder.Build();
+
+    app.UseApplicationSwagger();
+    app.UseApplicationRequestLogging();
+    app.UseApplicationExceptionHandler();
+    app.UseHttpsRedirection();
+    app.UseApplicationCors();
+
+    app.MapControllers();
+    app.MapHealthChecks("/health");
+
     Log.Information("Iniciando a aplicação MinhaPrimeiraAPI");
     app.Run();
+}
+catch (HostAbortedException)
+{
 }
 catch (Exception ex)
 {

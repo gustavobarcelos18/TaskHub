@@ -20,6 +20,7 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import {
   LIMITE_DESCRICAO_TAREFA,
+  LIMITE_OBSERVACOES_TAREFA,
   tarefaSchema,
   type TarefaFormData,
 } from "../schemas/tarefa-schema";
@@ -27,17 +28,20 @@ import {
 import { atualizarTarefa } from "../services/tarefa-service";
 import { PRIORIDADES_TAREFA, SITUACOES_TAREFA, type Tarefa } from "../types/tarefa";
 import { converterDataParaFormulario, mascararDataCivil } from "../utils/formatar-data";
+import { SeletorEtiquetas } from "./SeletorEtiquetas";
 
 type DialogoEditarTarefaProps = {
   tarefa: Tarefa;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess: (mensagem: string) => void;
 };
 
 export function DialogoEditarTarefa({
   tarefa,
   open,
   onOpenChange,
+  onSuccess,
 }: DialogoEditarTarefaProps) {
   const router = useRouter();
 
@@ -53,9 +57,11 @@ export function DialogoEditarTarefa({
 
     defaultValues: {
       descricao: tarefa.descricao,
+      observacoes: tarefa.observacoes ?? "",
       situacao: tarefa.situacao,
       prioridade: tarefa.prioridade,
       dataVencimento: converterDataParaFormulario(tarefa.dataVencimento),
+      etiquetaIds: tarefa.etiquetas.map((etiqueta) => etiqueta.id),
     },
   });
 
@@ -66,6 +72,7 @@ export function DialogoEditarTarefa({
       await atualizarTarefa(tarefa.id, dados);
 
       onOpenChange(false);
+      onSuccess(dados.situacao === "Concluída" && tarefa.situacao !== "Concluída" ? "Tarefa concluída com sucesso." : tarefa.situacao === "Concluída" && dados.situacao !== "Concluída" ? "Tarefa reaberta com sucesso." : "Tarefa atualizada com sucesso.");
       router.refresh();
     } catch (erro) {
       const mensagem =
@@ -134,6 +141,21 @@ export function DialogoEditarTarefa({
             fullWidth
             {...register("descricao")}
           />
+
+          <TextField
+            id={`observacoes-${tarefa.id}`}
+            label="Observações"
+            placeholder="Adicione detalhes complementares da tarefa"
+            multiline
+            minRows={4}
+            slotProps={{ htmlInput: { maxLength: LIMITE_OBSERVACOES_TAREFA } }}
+            error={Boolean(errors.observacoes)}
+            helperText={errors.observacoes?.message ?? `Opcional. Máximo de ${LIMITE_OBSERVACOES_TAREFA} caracteres.`}
+            fullWidth
+            {...register("observacoes")}
+          />
+
+          <SeletorEtiquetas control={control} />
 
           <Controller
             name="prioridade"

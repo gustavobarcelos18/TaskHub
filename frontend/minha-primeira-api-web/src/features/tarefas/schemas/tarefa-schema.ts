@@ -4,6 +4,7 @@ import { PRIORIDADES_TAREFA, SITUACOES_TAREFA } from "../types/tarefa";
 import { ehDataCivilValida } from "../utils/formatar-data";
 
 export const LIMITE_DESCRICAO_TAREFA = 200;
+export const LIMITE_OBSERVACOES_TAREFA = 4000;
 
 export const tarefaSchema = z.object({
   descricao: z
@@ -15,6 +16,13 @@ export const tarefaSchema = z.object({
       `A descrição deve ter no máximo ${LIMITE_DESCRICAO_TAREFA} caracteres.`,
     ),
 
+  observacoes: z
+    .string()
+    .max(
+      LIMITE_OBSERVACOES_TAREFA,
+      `As observações devem ter no máximo ${LIMITE_OBSERVACOES_TAREFA} caracteres.`,
+    ),
+
   situacao: z.enum(SITUACOES_TAREFA, {
     message: "Selecione uma situação válida.",
   }),
@@ -23,6 +31,7 @@ export const tarefaSchema = z.object({
     (valor) => valor === "" || ehDataCivilValida(valor),
     "Informe uma data v\u00e1lida no formato dd/mm/aaaa.",
   ),
+  etiquetaIds: z.array(z.number().int().positive()),
 });
 
 export type TarefaFormData = z.infer<typeof tarefaSchema>;

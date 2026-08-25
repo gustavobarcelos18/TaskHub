@@ -6,6 +6,8 @@ public class Tarefa
 
     public string Descricao { get; set; } = string.Empty;
 
+    public string? Observacoes { get; set; }
+
     public string Situacao { get; set; } = SituacoesTarefa.Pendente;
 
     public string Prioridade { get; set; } = PrioridadesTarefa.Media;
@@ -21,4 +23,6 @@ public class Tarefa
     public DateTime? ConcluidaEm { get; set; }
 
     public DateTime? ExcluidaEm { get; set; }
+
+    public ICollection<Etiqueta> Etiquetas { get; set; } = new List<Etiqueta>();
 }

@@ -19,6 +19,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
+import Snackbar from "@mui/material/Snackbar";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -45,6 +46,7 @@ export function MenuAcoesTarefa({ tarefa }: MenuAcoesTarefaProps) {
   const [excluindo, setExcluindo] = useState(false);
 
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   function abrirMenu(evento: React.MouseEvent<HTMLElement>) {
     setAncoraMenu(evento.currentTarget);
@@ -80,6 +82,7 @@ export function MenuAcoesTarefa({ tarefa }: MenuAcoesTarefaProps) {
       await excluirTarefa(tarefa.id);
 
       setDialogoExclusaoAberto(false);
+      setFeedback("Tarefa enviada para a lixeira. Ela poderá ser restaurada.");
       router.refresh();
     } catch (erro) {
       const mensagem =
@@ -143,7 +146,12 @@ export function MenuAcoesTarefa({ tarefa }: MenuAcoesTarefaProps) {
         tarefa={tarefa}
         open={dialogoEdicaoAberto}
         onOpenChange={setDialogoEdicaoAberto}
+        onSuccess={setFeedback}
       />
+
+      <Snackbar open={feedback !== null} autoHideDuration={4000} onClose={() => setFeedback(null)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+        <Alert severity="success" variant="filled" onClose={() => setFeedback(null)}>{feedback}</Alert>
+      </Snackbar>
 
       <Dialog
         open={dialogoExclusaoAberto}

@@ -36,6 +36,11 @@ public class TarefaRepository : ITarefaRepository
             tarefas = tarefas.Where(tarefa => tarefa.Prioridade == consulta.Prioridade);
         }
 
+        if (consulta.EtiquetaId is not null)
+        {
+            tarefas = tarefas.Where(tarefa => tarefa.Etiquetas.Any(etiqueta => etiqueta.Id == consulta.EtiquetaId));
+        }
+
         tarefas = consulta.Prazo switch
         {
             FiltroPrazoTarefa.Vencidas => tarefas.Where(tarefa =>
@@ -54,6 +59,8 @@ public class TarefaRepository : ITarefaRepository
         var itens = await tarefas
             .Skip((consulta.Pagina - 1) * consulta.TamanhoPagina)
             .Take(consulta.TamanhoPagina)
+            .Include(tarefa => tarefa.Etiquetas)
+            .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
         return new ResultadoConsultaTarefas
@@ -63,7 +70,7 @@ public class TarefaRepository : ITarefaRepository
         };
     }
 
-    public async Task<ResultadoResumoTarefas> ObterResumoAtivasAsync(CancellationToken cancellationToken = default)
+    public async Task<ResultadoResumoTarefas> ObterResumoAtivasAsync(DateOnly hoje, CancellationToken cancellationToken = default)
     {
         var resumo = await _context.Tarefas
             .AsNoTracking()
@@ -73,7 +80,10 @@ public class TarefaRepository : ITarefaRepository
                 Total = grupo.Count(),
                 Pendentes = grupo.Count(tarefa => tarefa.Situacao == SituacoesTarefa.Pendente),
                 EmAndamento = grupo.Count(tarefa => tarefa.Situacao == SituacoesTarefa.EmAndamento),
-                Concluidas = grupo.Count(tarefa => tarefa.Situacao == SituacoesTarefa.Concluida)
+                Concluidas = grupo.Count(tarefa => tarefa.Situacao == SituacoesTarefa.Concluida),
+                Vencidas = grupo.Count(tarefa => tarefa.DataVencimento < hoje && tarefa.Situacao != SituacoesTarefa.Concluida),
+                VencemHoje = grupo.Count(tarefa => tarefa.DataVencimento == hoje && tarefa.Situacao != SituacoesTarefa.Concluida),
+                Proximas = grupo.Count(tarefa => tarefa.DataVencimento > hoje && tarefa.Situacao != SituacoesTarefa.Concluida)
             })
             .SingleOrDefaultAsync(cancellationToken);
 
@@ -107,6 +117,8 @@ public class TarefaRepository : ITarefaRepository
             .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(tarefa => tarefa.ExcluidaEm != null)
+            .Include(tarefa => tarefa.Etiquetas)
+            .AsSplitQuery()
             .OrderByDescending(tarefa => tarefa.ExcluidaEm)
             .ThenByDescending(tarefa => tarefa.Id)
             .ToListAsync(cancellationToken);
@@ -124,7 +136,10 @@ public class TarefaRepository : ITarefaRepository
             consulta = consulta.AsNoTracking();
         }
 
-        return await consulta.FirstOrDefaultAsync(
+        return await consulta
+            .Include(tarefa => tarefa.Etiquetas)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(
             tarefa => tarefa.Id == id,
             cancellationToken
         );
@@ -134,6 +149,8 @@ public class TarefaRepository : ITarefaRepository
     {
         return await _context.Tarefas
             .IgnoreQueryFilters()
+            .Include(tarefa => tarefa.Etiquetas)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(
                 tarefa => tarefa.Id == id,
                 cancellationToken

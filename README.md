@@ -1,5 +1,7 @@
 # Documentação Funcional e Técnica — ProjetoTarefas
 
+> Esta documentação histórica descreve a evolução do projeto. Para configuração e consumo do contrato atual, use o [README do backend](backend/README.md) e o [README do frontend](frontend/minha-primeira-api-web/README.md), que são a referência operacional.
+
 ## 1. Visão Geral
 
 * [ ] 
