@@ -1,4 +1,4 @@
-namespace MinhaPrimeiraAPI.Models;
+namespace ProjetoTarefas.Models;
 
 public static class SituacoesTarefa
 {

@@ -1,4 +1,4 @@
-namespace MinhaPrimeiraAPI.Services;
+namespace ProjetoTarefas.Services;
 
 public sealed class EtiquetaDuplicadaException : Exception
 {

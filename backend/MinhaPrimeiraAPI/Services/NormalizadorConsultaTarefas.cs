@@ -1,8 +1,8 @@
-using MinhaPrimeiraAPI.DTOs.Requests;
-using MinhaPrimeiraAPI.Models;
-using MinhaPrimeiraAPI.Repositories;
+using ProjetoTarefas.DTOs.Requests;
+using ProjetoTarefas.Models;
+using ProjetoTarefas.Repositories;
 
-namespace MinhaPrimeiraAPI.Services;
+namespace ProjetoTarefas.Services;
 
 public static class NormalizadorConsultaTarefas
 {

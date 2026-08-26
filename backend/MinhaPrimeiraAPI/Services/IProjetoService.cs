@@ -1,7 +1,7 @@
-using MinhaPrimeiraAPI.DTOs.Requests;
-using MinhaPrimeiraAPI.DTOs.Responses;
+using ProjetoTarefas.DTOs.Requests;
+using ProjetoTarefas.DTOs.Responses;
 
-namespace MinhaPrimeiraAPI.Services;
+namespace ProjetoTarefas.Services;
 
 public interface IProjetoService
 {

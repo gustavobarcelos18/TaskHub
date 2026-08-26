@@ -1,8 +1,8 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using MinhaPrimeiraAPI.Data;
+using ProjetoTarefas.Data;
 
-namespace MinhaPrimeiraAPI.Tests.Infrastructure;
+namespace ProjetoTarefas.Tests.Infrastructure;
 
 internal sealed class SqliteTestDatabase : IAsyncDisposable
 {

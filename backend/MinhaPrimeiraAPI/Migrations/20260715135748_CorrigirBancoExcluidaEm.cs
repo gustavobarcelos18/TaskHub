@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace MinhaPrimeiraAPI.Migrations
+namespace ProjetoTarefas.Migrations
 {
     public partial class CorrigirBancoExcluidaEm : Migration
     {

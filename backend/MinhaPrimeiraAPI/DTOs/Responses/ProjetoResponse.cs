@@ -1,4 +1,4 @@
-namespace MinhaPrimeiraAPI.DTOs.Responses;
+namespace ProjetoTarefas.DTOs.Responses;
 
 public class ProjetoResponse
 {

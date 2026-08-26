@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-using MinhaPrimeiraAPI.DTOs.Requests;
-using MinhaPrimeiraAPI.DTOs.Responses;
-using MinhaPrimeiraAPI.Models;
-using MinhaPrimeiraAPI.Repositories;
+using ProjetoTarefas.DTOs.Requests;
+using ProjetoTarefas.DTOs.Responses;
+using ProjetoTarefas.Models;
+using ProjetoTarefas.Repositories;
 
-namespace MinhaPrimeiraAPI.Services;
+namespace ProjetoTarefas.Services;
 
-public class ProjetoService(IProjetoRepository repository) : IProjetoService
+public class ProjetoService(IProjetoRepository repository, IUsuarioAtual usuarioAtual) : IProjetoService
 {
     public async Task<List<ProjetoResponse>> ListarAsync(CancellationToken cancellationToken = default) => (await repository.ListarAsync(cancellationToken)).Select(Mapear).ToList();
     public async Task<ProjetoResponse> CriarAsync(CriarProjetoRequest request, CancellationToken cancellationToken = default)
@@ -14,7 +14,7 @@ public class ProjetoService(IProjetoRepository repository) : IProjetoService
         var nome = NormalizarNome(request.Nome);
         var normalizado = nome.ToUpperInvariant();
         if (await repository.BuscarPorNomeNormalizadoAsync(normalizado, cancellationToken) is not null) throw new ProjetoDuplicadoException();
-        var projeto = new Projeto { Nome = nome, NomeNormalizado = normalizado };
+        var projeto = new Projeto { UsuarioId = usuarioAtual.Id, Nome = nome, NomeNormalizado = normalizado };
         repository.Adicionar(projeto);
         try { await repository.SalvarAlteracoesAsync(cancellationToken); }
         catch (DbUpdateException) { throw new ProjetoDuplicadoException(); }

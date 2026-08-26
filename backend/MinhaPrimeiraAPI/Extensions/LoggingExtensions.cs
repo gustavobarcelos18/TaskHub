@@ -1,7 +1,7 @@
 using Serilog;
 using Serilog.Events;
 
-namespace MinhaPrimeiraAPI.Extensions;
+namespace ProjetoTarefas.Extensions;
 
 public static class LoggingExtensions
 {
@@ -29,7 +29,7 @@ public static class LoggingExtensions
             .Enrich.FromLogContext()
             .Enrich.WithProperty(
                 "Aplicacao",
-                "MinhaPrimeiraAPI"
+                "ProjetoTarefas"
             )
             .WriteTo.Console()
             .WriteTo.File(

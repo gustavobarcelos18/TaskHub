@@ -1,13 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging.Abstractions;
-using MinhaPrimeiraAPI.DTOs.Requests;
-using MinhaPrimeiraAPI.Models;
-using MinhaPrimeiraAPI.Repositories;
-using MinhaPrimeiraAPI.Services;
-using MinhaPrimeiraAPI.Tests.Fakes;
+using ProjetoTarefas.DTOs.Requests;
+using ProjetoTarefas.Models;
+using ProjetoTarefas.Repositories;
+using ProjetoTarefas.Services;
+using ProjetoTarefas.Tests.Fakes;
 using Xunit;
 
-namespace MinhaPrimeiraAPI.Tests.Services;
+namespace ProjetoTarefas.Tests.Services;
 
 public sealed class TarefaServiceTests
 {
@@ -1538,7 +1538,8 @@ public sealed class TarefaServiceTests
         return new TarefaService(
             tarefaRepository,
             NullLogger<TarefaService>.Instance,
-            timeProvider ?? new TimeProviderFixo(InstanteControlado)
+            timeProvider ?? new TimeProviderFixo(InstanteControlado),
+            usuarioAtual: new UsuarioAtualFake()
         );
     }
 

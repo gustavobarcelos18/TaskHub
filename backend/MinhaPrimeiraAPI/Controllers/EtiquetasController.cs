@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using MinhaPrimeiraAPI.DTOs.Requests;
-using MinhaPrimeiraAPI.DTOs.Responses;
-using MinhaPrimeiraAPI.Services;
+using Microsoft.AspNetCore.Authorization;
+using ProjetoTarefas.DTOs.Requests;
+using ProjetoTarefas.DTOs.Responses;
+using ProjetoTarefas.Services;
 
-namespace MinhaPrimeiraAPI.Controllers;
+namespace ProjetoTarefas.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/etiquetas")]
 public class EtiquetasController(IEtiquetaService service) : ControllerBase
 {

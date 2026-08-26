@@ -1,23 +1,28 @@
 using Microsoft.EntityFrameworkCore;
-using MinhaPrimeiraAPI.Data;
-using MinhaPrimeiraAPI.Models;
+using ProjetoTarefas.Data;
+using ProjetoTarefas.Models;
+using ProjetoTarefas.Services;
 
-namespace MinhaPrimeiraAPI.Repositories;
+namespace ProjetoTarefas.Repositories;
 
 public class TarefaRepository : ITarefaRepository
 {
     private readonly AppDbContext _context;
+    private readonly IUsuarioAtual? _usuarioAtual;
 
-    public TarefaRepository(AppDbContext context)
+    public TarefaRepository(AppDbContext context, IUsuarioAtual? usuarioAtual = null)
     {
         _context = context;
+        _usuarioAtual = usuarioAtual;
     }
 
     public async Task<ResultadoConsultaTarefas> ListarAtivasAsync(
         ConsultaTarefas consulta,
         CancellationToken cancellationToken = default)
     {
-        IQueryable<Tarefa> tarefas = _context.Tarefas.AsNoTracking();
+        IQueryable<Tarefa> tarefas = _context.Tarefas
+            .AsNoTracking()
+            .Where(tarefa => _usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id);
 
         if (!string.IsNullOrWhiteSpace(consulta.Busca))
         {
@@ -80,6 +85,7 @@ public class TarefaRepository : ITarefaRepository
     {
         var resumo = await _context.Tarefas
             .AsNoTracking()
+            .Where(tarefa => _usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id)
             .GroupBy(_ => 1)
             .Select(grupo => new ResultadoResumoTarefas
             {
@@ -122,7 +128,7 @@ public class TarefaRepository : ITarefaRepository
         return await _context.Tarefas
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(tarefa => tarefa.ExcluidaEm != null)
+            .Where(tarefa => tarefa.ExcluidaEm != null && (_usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id))
             .Include(tarefa => tarefa.Projeto)
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
@@ -148,7 +154,7 @@ public class TarefaRepository : ITarefaRepository
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
             .FirstOrDefaultAsync(
-            tarefa => tarefa.Id == id,
+            tarefa => tarefa.Id == id && (_usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id),
             cancellationToken
         );
     }
@@ -161,7 +167,7 @@ public class TarefaRepository : ITarefaRepository
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
             .FirstOrDefaultAsync(
-                tarefa => tarefa.Id == id,
+                tarefa => tarefa.Id == id && (_usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id),
                 cancellationToken
         );
     }
@@ -171,7 +177,7 @@ public class TarefaRepository : ITarefaRepository
         return await _context.HistoricosTarefas
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(historico => historico.TarefaId == tarefaId)
+            .Where(historico => historico.TarefaId == tarefaId && (_usuarioAtual == null || historico.Tarefa.UsuarioId == _usuarioAtual.Id))
             .OrderByDescending(historico => historico.CriadoEm)
             .ThenByDescending(historico => historico.Id)
             .ToListAsync(cancellationToken);

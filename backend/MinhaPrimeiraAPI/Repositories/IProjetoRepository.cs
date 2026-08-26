@@ -1,6 +1,6 @@
-using MinhaPrimeiraAPI.Models;
+using ProjetoTarefas.Models;
 
-namespace MinhaPrimeiraAPI.Repositories;
+namespace ProjetoTarefas.Repositories;
 
 public interface IProjetoRepository
 {

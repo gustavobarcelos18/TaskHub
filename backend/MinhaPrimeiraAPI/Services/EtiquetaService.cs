@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-using MinhaPrimeiraAPI.DTOs.Requests;
-using MinhaPrimeiraAPI.DTOs.Responses;
-using MinhaPrimeiraAPI.Models;
-using MinhaPrimeiraAPI.Repositories;
+using ProjetoTarefas.DTOs.Requests;
+using ProjetoTarefas.DTOs.Responses;
+using ProjetoTarefas.Models;
+using ProjetoTarefas.Repositories;
 
-namespace MinhaPrimeiraAPI.Services;
+namespace ProjetoTarefas.Services;
 
-public class EtiquetaService(IEtiquetaRepository repository) : IEtiquetaService
+public class EtiquetaService(IEtiquetaRepository repository, IUsuarioAtual usuarioAtual) : IEtiquetaService
 {
     public async Task<List<EtiquetaResponse>> ListarAsync(CancellationToken cancellationToken = default) => (await repository.ListarAsync(cancellationToken)).Select(Mapear).ToList();
     public async Task<EtiquetaResponse> CriarAsync(CriarEtiquetaRequest request, CancellationToken cancellationToken = default)
@@ -14,7 +14,7 @@ public class EtiquetaService(IEtiquetaRepository repository) : IEtiquetaService
         var nome = NormalizarNome(request.Nome);
         var normalizado = nome.ToUpperInvariant();
         if (await repository.BuscarPorNomeNormalizadoAsync(normalizado, cancellationToken) is not null) throw new EtiquetaDuplicadaException();
-        var etiqueta = new Etiqueta { Nome = nome, NomeNormalizado = normalizado };
+        var etiqueta = new Etiqueta { UsuarioId = usuarioAtual.Id, Nome = nome, NomeNormalizado = normalizado };
         repository.Adicionar(etiqueta);
         try { await repository.SalvarAlteracoesAsync(cancellationToken); }
         catch (DbUpdateException) { throw new EtiquetaDuplicadaException(); }

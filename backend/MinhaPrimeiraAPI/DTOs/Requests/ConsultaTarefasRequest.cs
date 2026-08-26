@@ -1,4 +1,4 @@
-namespace MinhaPrimeiraAPI.DTOs.Requests;
+namespace ProjetoTarefas.DTOs.Requests;
 
 public class ConsultaTarefasRequest
 {

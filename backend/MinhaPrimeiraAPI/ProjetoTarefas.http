@@ -1,0 +1,33 @@
+@ProjetoTarefas_HostAddress = https://localhost:7056
+
+### Listar tarefas ativas
+GET {{ProjetoTarefas_HostAddress}}/api/tarefas
+Accept: application/json
+
+### Buscar tarefa por ID
+GET {{ProjetoTarefas_HostAddress}}/api/tarefas/1
+Accept: application/json
+
+### Criar tarefa
+POST {{ProjetoTarefas_HostAddress}}/api/tarefas
+Content-Type: application/json
+
+{
+  "descricao": "Estudar arquitetura em camadas",
+  "situacao": "Pendente"
+}
+
+### Atualizar tarefa
+PUT {{ProjetoTarefas_HostAddress}}/api/tarefas/1
+Content-Type: application/json
+
+{
+  "descricao": "Estudar Controller, Service e Repository",
+  "situacao": "Concluída"
+}
+
+### Exclusão lógica
+DELETE {{ProjetoTarefas_HostAddress}}/api/tarefas/1
+
+### Exclusão permanente
+DELETE {{ProjetoTarefas_HostAddress}}/api/tarefas/1/permanente

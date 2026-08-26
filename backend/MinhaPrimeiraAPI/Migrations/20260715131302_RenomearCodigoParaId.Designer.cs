@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using MinhaPrimeiraAPI.Data;
+using ProjetoTarefas.Data;
 
 #nullable disable
 
-namespace MinhaPrimeiraAPI.Migrations
+namespace ProjetoTarefas.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20260715131302_RenomearCodigoParaId")]
@@ -20,7 +20,7 @@ namespace MinhaPrimeiraAPI.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
 
-            modelBuilder.Entity("MinhaPrimeiraAPI.Models.Tarefa", b =>
+            modelBuilder.Entity("ProjetoTarefas.Models.Tarefa", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

@@ -1,7 +1,7 @@
-using MinhaPrimeiraAPI.Models;
-using MinhaPrimeiraAPI.Repositories;
+using ProjetoTarefas.Models;
+using ProjetoTarefas.Repositories;
 
-namespace MinhaPrimeiraAPI.Tests.Fakes;
+namespace ProjetoTarefas.Tests.Fakes;
 
 internal sealed class TarefaRepositoryFake : ITarefaRepository
 {

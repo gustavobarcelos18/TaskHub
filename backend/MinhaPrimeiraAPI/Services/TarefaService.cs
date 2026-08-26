@@ -1,10 +1,10 @@
-using MinhaPrimeiraAPI.DTOs.Requests;
-using MinhaPrimeiraAPI.DTOs.Responses;
-using MinhaPrimeiraAPI.Models;
-using MinhaPrimeiraAPI.Repositories;
+using ProjetoTarefas.DTOs.Requests;
+using ProjetoTarefas.DTOs.Responses;
+using ProjetoTarefas.Models;
+using ProjetoTarefas.Repositories;
 using System.Text.Json;
 
-namespace MinhaPrimeiraAPI.Services;
+namespace ProjetoTarefas.Services;
 
 public class TarefaService : ITarefaService
 {
@@ -14,19 +14,22 @@ public class TarefaService : ITarefaService
     private readonly TimeProvider _timeProvider;
     private readonly IEtiquetaRepository? _etiquetaRepository;
     private readonly IProjetoRepository? _projetoRepository;
+    private readonly IUsuarioAtual _usuarioAtual;
 
     public TarefaService(
         ITarefaRepository tarefaRepository,
         ILogger<TarefaService> logger,
         TimeProvider timeProvider,
         IEtiquetaRepository? etiquetaRepository = null,
-        IProjetoRepository? projetoRepository = null)
+        IProjetoRepository? projetoRepository = null,
+        IUsuarioAtual? usuarioAtual = null)
     {
         _tarefaRepository = tarefaRepository;
         _logger = logger;
         _timeProvider = timeProvider;
         _etiquetaRepository = etiquetaRepository;
         _projetoRepository = projetoRepository;
+        _usuarioAtual = usuarioAtual ?? throw new ArgumentNullException(nameof(usuarioAtual));
     }
 
     public async Task<TarefasPaginadasResponse> ListarAsync(
@@ -138,6 +141,7 @@ public class TarefaService : ITarefaService
 
         var tarefa = new Tarefa
         {
+            UsuarioId = _usuarioAtual.Id,
             Descricao = novaTarefa.Descricao.Trim(),
             Observacoes = NormalizarObservacoes(novaTarefa.Observacoes),
             Situacao = situacao,

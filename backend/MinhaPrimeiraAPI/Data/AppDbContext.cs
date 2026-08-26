@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using MinhaPrimeiraAPI.Models;
+using ProjetoTarefas.Models;
 
-namespace MinhaPrimeiraAPI.Data;
+namespace ProjetoTarefas.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<Usuario>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -31,6 +32,16 @@ public class AppDbContext : DbContext
             entity.Property(tarefa => tarefa.Id)
                 .HasColumnName("ID")
                 .ValueGeneratedOnAdd();
+
+            entity.Property(tarefa => tarefa.UsuarioId)
+                .HasColumnName("USUARIO_ID");
+
+            entity.HasIndex(tarefa => tarefa.UsuarioId);
+
+            entity.HasOne(tarefa => tarefa.Usuario)
+                .WithMany()
+                .HasForeignKey(tarefa => tarefa.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.Property(tarefa => tarefa.Descricao)
                 .HasColumnName("DESCRICAO")
@@ -137,9 +148,11 @@ public class AppDbContext : DbContext
             entity.ToTable("ETIQUETAS");
             entity.HasKey(etiqueta => etiqueta.Id);
             entity.Property(etiqueta => etiqueta.Id).HasColumnName("ID").ValueGeneratedOnAdd();
+            entity.Property(etiqueta => etiqueta.UsuarioId).HasColumnName("USUARIO_ID");
+            entity.HasOne(etiqueta => etiqueta.Usuario).WithMany().HasForeignKey(etiqueta => etiqueta.UsuarioId).OnDelete(DeleteBehavior.Restrict);
             entity.Property(etiqueta => etiqueta.Nome).HasColumnName("NOME").HasMaxLength(50).IsRequired();
             entity.Property(etiqueta => etiqueta.NomeNormalizado).HasColumnName("NOME_NORMALIZADO").HasMaxLength(50).IsRequired();
-            entity.HasIndex(etiqueta => etiqueta.NomeNormalizado).IsUnique();
+            entity.HasIndex(etiqueta => new { etiqueta.UsuarioId, etiqueta.NomeNormalizado }).IsUnique();
         });
 
         modelBuilder.Entity<Projeto>(entity =>
@@ -147,9 +160,11 @@ public class AppDbContext : DbContext
             entity.ToTable("PROJETOS");
             entity.HasKey(projeto => projeto.Id);
             entity.Property(projeto => projeto.Id).HasColumnName("ID").ValueGeneratedOnAdd();
+            entity.Property(projeto => projeto.UsuarioId).HasColumnName("USUARIO_ID");
+            entity.HasOne(projeto => projeto.Usuario).WithMany().HasForeignKey(projeto => projeto.UsuarioId).OnDelete(DeleteBehavior.Restrict);
             entity.Property(projeto => projeto.Nome).HasColumnName("NOME").HasMaxLength(100).IsRequired();
             entity.Property(projeto => projeto.NomeNormalizado).HasColumnName("NOME_NORMALIZADO").HasMaxLength(100).IsRequired();
-            entity.HasIndex(projeto => projeto.NomeNormalizado).IsUnique();
+            entity.HasIndex(projeto => new { projeto.UsuarioId, projeto.NomeNormalizado }).IsUnique();
         });
 
         modelBuilder.Entity<Tarefa>()

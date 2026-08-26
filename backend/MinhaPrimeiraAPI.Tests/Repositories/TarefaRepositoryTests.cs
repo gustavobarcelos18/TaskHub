@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using MinhaPrimeiraAPI.Models;
-using MinhaPrimeiraAPI.Repositories;
-using MinhaPrimeiraAPI.Tests.Infrastructure;
+using ProjetoTarefas.Models;
+using ProjetoTarefas.Repositories;
+using ProjetoTarefas.Tests.Infrastructure;
 
-namespace MinhaPrimeiraAPI.Tests.Repositories;
+namespace ProjetoTarefas.Tests.Repositories;
 
 public sealed class TarefaRepositoryTests
 {

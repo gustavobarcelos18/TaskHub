@@ -1,4 +1,4 @@
-# MinhaPrimeiraAPI
+# ProjetoTarefas
 
 ## Visão geral
 
@@ -9,13 +9,13 @@ API HTTP para tarefas. Usa ASP.NET Core, Entity Framework Core, SQLite, Serilog,
 - .NET SDK 10.
 - Para migrations, a ferramenta `dotnet-ef` compatível com o SDK.
 
-O perfil HTTP de desenvolvimento usa `http://localhost:5025`; o perfil HTTPS também oferece `https://localhost:7056`.
+O perfil local de desenvolvimento usa exclusivamente `https://localhost:7056`.
 
 ```powershell
-dotnet run --project backend/MinhaPrimeiraAPI
+dotnet run --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj --launch-profile https
 ```
 
-Em Development, o Swagger UI está em `http://localhost:5025/swagger` e o documento OpenAPI em `/swagger/v1/swagger.json`. Swagger não é habilitado fora de Development.
+Em Development, o Swagger UI está em `https://localhost:7056/swagger` e o documento OpenAPI em `/swagger/v1/swagger.json`. Swagger não é habilitado fora de Development.
 
 ## Operação
 
@@ -23,11 +23,11 @@ Em Development, o Swagger UI está em `http://localhost:5025/swagger` e o docume
 
 `GET /health` usa o mecanismo nativo de Health Checks do ASP.NET Core e confirma que a API responde e que o SQLite aceita conexão. Retorna `200` quando saudável e `503` quando o banco não está acessível. A resposta padrão não expõe connection string, caminhos, exceções ou outros detalhes internos.
 
-### Configuração e CORS
+### Configuração
 
-No startup, `ConnectionStrings:DefaultConnection` precisa estar preenchida e informar `Data Source`; `Cors:AllowedOrigins` precisa conter ao menos uma URL HTTP/HTTPS absoluta. Falhas encerram o startup com uma mensagem clara no log. O diretório do SQLite é criado quando necessário; o banco em si continua sendo criado somente por migrations.
+No startup, `ConnectionStrings:DefaultConnection` precisa estar preenchida e informar `Data Source`. Falhas encerram o startup com uma mensagem clara no log. O diretório do SQLite é criado quando necessário; o banco em si continua sendo criado somente por migrations.
 
-O padrão de CORS em desenvolvimento é `http://localhost:3000`, sem `AllowAnyOrigin`. Para outro ambiente, defina por exemplo `Cors__AllowedOrigins__0=https://app.exemplo.com` e mantenha uma lista explícita de origens.
+O frontend consome a API pelo rewrite same-origin `/api` do Next.js; por isso a API não configura CORS para o navegador da aplicação.
 
 ### Ambientes
 
@@ -48,7 +48,7 @@ $env:ASPNETCORE_ENVIRONMENT = "Homologation"
 $env:ConnectionStrings__DefaultConnection = "Data Source=C:\dados\projetotarefas-hml\tarefas.db"
 $env:Cors__AllowedOrigins__0 = "https://hml.app.exemplo.com"
 $env:AllowedHosts = "hml.api.exemplo.com"
-dotnet run --no-launch-profile --project backend/MinhaPrimeiraAPI
+dotnet run --no-launch-profile --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj
 ```
 
 O `--no-launch-profile` é necessário nesse exemplo porque `Properties/launchSettings.json` é destinado à execução local e define `Development`. Para Produção, use `ASPNETCORE_ENVIRONMENT=Production` e valores equivalentes apontando para o volume persistente e os domínios produtivos. Se houver mais de uma origem permitida, informe índices adicionais, como `Cors__AllowedOrigins__1`. Em servidores, cadastre essas variáveis no mecanismo de configuração da plataforma, e não em scripts ou arquivos versionados.
@@ -58,13 +58,13 @@ O `--no-launch-profile` é necessário nesse exemplo porque `Properties/launchSe
 A API não executa migrations no startup. Aplique-as explicitamente antes de iniciar a API:
 
 ```powershell
-dotnet ef database update --project backend/MinhaPrimeiraAPI --startup-project backend/MinhaPrimeiraAPI
+dotnet ef database update --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj --startup-project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj
 ```
 
 Para um banco novo em outro local, informe uma connection string isolada:
 
 ```powershell
-dotnet ef database update --project backend/MinhaPrimeiraAPI --startup-project backend/MinhaPrimeiraAPI --connection "Data Source=C:\dados\tarefas.db"
+dotnet ef database update --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj --startup-project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj --connection "Data Source=C:\dados\tarefas.db"
 ```
 
 A sequência manual de implantação é: configurar as variáveis de ambiente, aplicar migrations, iniciar o backend, verificar `/health`, configurar `NEXT_PUBLIC_API_URL` no frontend e iniciar/buildar o frontend.
@@ -94,13 +94,13 @@ A chave `ConnectionStrings:DefaultConnection` de `appsettings.Development.json` 
 O aplicativo não aplica migrations automaticamente. Para aplicar a cadeia existente:
 
 ```powershell
-dotnet ef database update --project backend/MinhaPrimeiraAPI --startup-project backend/MinhaPrimeiraAPI
+dotnet ef database update --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj --startup-project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj
 ```
 
 Para criar uma migration futura:
 
 ```powershell
-dotnet ef migrations add NomeDaMigration --project backend/MinhaPrimeiraAPI --startup-project backend/MinhaPrimeiraAPI
+dotnet ef migrations add NomeDaMigration --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj --startup-project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj
 ```
 
 Arquivos `.db`, `.db-shm` e `.db-wal` em `Database/` são ignorados pelo Git. A migration `20260715135748_CorrigirBancoExcluidaEm` é intencionalmente sem alteração de schema: ela substitui a operação duplicada que tentava criar `EXCLUIDA_EM` pela segunda vez. Bancos existentes que já a registraram continuam compatíveis; bancos novos passam a aplicar a cadeia completa.

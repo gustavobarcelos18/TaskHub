@@ -2,7 +2,7 @@
 
 Aplicação web para organizar tarefas, projetos e etiquetas. O projeto é formado por um frontend Next.js e uma API ASP.NET Core, que se comunicam por HTTP/JSON e persistem os dados em SQLite.
 
-Esta página apresenta o estado atual do projeto e o fluxo de desenvolvimento. Os detalhes operacionais e o contrato HTTP completo estão nos READMEs do [backend](backend/README.md) e do [frontend](frontend/minha-primeira-api-web/README.md).
+Esta página apresenta o estado atual do projeto e o fluxo de desenvolvimento. Os detalhes operacionais e o contrato HTTP completo estão nos READMEs do [backend](backend/README.md) e do [frontend](frontend/README.md).
 
 ## Visão geral
 
@@ -62,10 +62,10 @@ O backend não expõe entidades do Entity Framework pela API: requests e respons
 ```text
 ProjetoTarefas/
 ├── backend/
-│   ├── MinhaPrimeiraAPI/          # API, EF Core, migrations e SQLite
-│   └── MinhaPrimeiraAPI.Tests/    # Testes de services e repositories
+│   ├── MinhaPrimeiraAPI/        # ProjetoTarefas: API, EF Core, migrations e SQLite
+│   └── MinhaPrimeiraAPI.Tests/  # ProjetoTarefas.Tests: testes de services e repositories
 ├── frontend/
-│   └── minha-primeira-api-web/    # Next.js, componentes e services HTTP
+│   └──                           # Next.js, componentes e services HTTP
 ├── scripts/                       # Backup, restore e manutenção do SQLite
 ├── Database/                      # Bancos locais, ignorados pelo Git
 └── ProjetoTarefas.slnx
@@ -85,7 +85,7 @@ No frontend, a funcionalidade de tarefas está organizada em `features/tarefas`,
 Na raiz do repositório:
 
 ```powershell
-dotnet run --project backend/MinhaPrimeiraAPI
+dotnet run --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj
 ```
 
 A API local usa `http://localhost:5025`. Em Development, o Swagger está disponível em `http://localhost:5025/swagger` e o health check em `http://localhost:5025/health`.
@@ -93,7 +93,7 @@ A API local usa `http://localhost:5025`. Em Development, o Swagger está dispon�
 ### 2. Configurar e iniciar o frontend
 
 ```powershell
-Set-Location frontend/minha-primeira-api-web
+Set-Location frontend
 Copy-Item .env.example .env.local
 npm install
 npm run dev
@@ -178,7 +178,7 @@ Em Homologation e Production, informe ao menos `ConnectionStrings__DefaultConnec
 Migrations não são aplicadas no startup. Para preparar o banco, execute explicitamente:
 
 ```powershell
-dotnet ef database update --project backend/MinhaPrimeiraAPI --startup-project backend/MinhaPrimeiraAPI
+dotnet ef database update --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj --startup-project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj
 ```
 
 Os scripts `backup-database.ps1` e `restore-database.ps1` utilizam a API de backup do SQLite. Pare a API antes dessas operações e siga as instruções do [README do backend](backend/README.md#backup-e-restore).
@@ -195,14 +195,9 @@ dotnet test ProjetoTarefas.slnx --no-build
 Frontend:
 
 ```powershell
-Set-Location frontend/minha-primeira-api-web
+Set-Location frontend
 npm run lint
 npm run build
 ```
 
 Os testes backend cobrem regras de service e consultas de repository com SQLite real em memória, incluindo filtros globais, ordenação, paginação, histórico, projetos e etiquetas. O total de testes é evolutivo; consulte a saída do comando para o resultado da versão em execução.
-
-## Documentação relacionada
-
-- [Backend: operação, ambientes, migrations e contrato HTTP](backend/README.md)
-- [Frontend: configuração, comandos e integração HTTP](frontend/minha-primeira-api-web/README.md)

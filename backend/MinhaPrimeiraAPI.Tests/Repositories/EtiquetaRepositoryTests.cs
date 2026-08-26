@@ -1,22 +1,69 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using MinhaPrimeiraAPI.DTOs.Requests;
-using MinhaPrimeiraAPI.Models;
-using MinhaPrimeiraAPI.Repositories;
-using MinhaPrimeiraAPI.Services;
-using MinhaPrimeiraAPI.Tests.Infrastructure;
+using ProjetoTarefas.DTOs.Requests;
+using ProjetoTarefas.Models;
+using ProjetoTarefas.Repositories;
+using ProjetoTarefas.Services;
+using ProjetoTarefas.Tests.Fakes;
+using ProjetoTarefas.Tests.Infrastructure;
 
-namespace MinhaPrimeiraAPI.Tests.Repositories;
+namespace ProjetoTarefas.Tests.Repositories;
 
 public sealed class EtiquetaRepositoryTests
 {
+    [Fact]
+    public async Task Repositorios_DevemRestringirTarefasProjetosEtiquetasEHistoricoAoUsuarioAtual()
+    {
+        await using var database = await CriarBancoAsync();
+        const string usuarioAId = "usuario-a";
+        const string usuarioBId = "usuario-b";
+
+        await using (var gravacao = database.CreateContext())
+        {
+            gravacao.Users.AddRange(
+                NovoUsuario(usuarioAId, "usuario-a@teste.local"),
+                NovoUsuario(usuarioBId, "usuario-b@teste.local"));
+
+            var projetoA = new Projeto { UsuarioId = usuarioAId, Nome = "Projeto A", NomeNormalizado = "PROJETO A" };
+            var projetoB = new Projeto { UsuarioId = usuarioBId, Nome = "Projeto B", NomeNormalizado = "PROJETO B" };
+            var etiquetaA = new Etiqueta { UsuarioId = usuarioAId, Nome = "Etiqueta A", NomeNormalizado = "ETIQUETA A" };
+            var etiquetaB = new Etiqueta { UsuarioId = usuarioBId, Nome = "Etiqueta B", NomeNormalizado = "ETIQUETA B" };
+            var agora = DateTime.UtcNow;
+            var tarefaA = NovaTarefa("Tarefa A", agora); tarefaA.UsuarioId = usuarioAId; tarefaA.Projeto = projetoA; tarefaA.Etiquetas.Add(etiquetaA);
+            var tarefaB = NovaTarefa("Tarefa B", agora); tarefaB.UsuarioId = usuarioBId; tarefaB.Projeto = projetoB; tarefaB.Etiquetas.Add(etiquetaB);
+            gravacao.AddRange(tarefaA, tarefaB);
+            gravacao.HistoricosTarefas.AddRange(
+                new HistoricoTarefa { Tarefa = tarefaA, Tipo = TiposHistoricoTarefa.Criacao, CriadoEm = agora },
+                new HistoricoTarefa { Tarefa = tarefaB, Tipo = TiposHistoricoTarefa.Criacao, CriadoEm = agora });
+            await gravacao.SaveChangesAsync();
+        }
+
+        await using var leitura = database.CreateContext();
+        var usuarioAtual = new UsuarioAtualFake(usuarioAId);
+        var tarefas = new TarefaRepository(leitura, usuarioAtual);
+        var projetos = new ProjetoRepository(leitura, usuarioAtual);
+        var etiquetas = new EtiquetaRepository(leitura, usuarioAtual);
+
+        var listaTarefas = await tarefas.ListarAtivasAsync(new ConsultaTarefas { Hoje = DateOnly.FromDateTime(DateTime.UtcNow), Pagina = 1, TamanhoPagina = 10 });
+        var tarefaAEncontrada = Assert.Single(listaTarefas.Itens);
+
+        Assert.Equal("Tarefa A", tarefaAEncontrada.Descricao);
+        Assert.Equal(["Projeto A"], (await projetos.ListarAsync()).Select(projeto => projeto.Nome));
+        Assert.Equal(["Etiqueta A"], (await etiquetas.ListarAsync()).Select(etiqueta => etiqueta.Nome));
+        Assert.Single(await tarefas.ListarHistoricoAsync(tarefaAEncontrada.Id));
+        Assert.Null(await tarefas.BuscarAtivaPorIdAsync(tarefaAEncontrada.Id + 1));
+    }
+
     [Fact]
     public async Task Etiquetas_DevemSerUnicasPorNomeNormalizadoEOrdenadasNoSQLite()
     {
         await using var database = await CriarBancoAsync();
         await using (var context = database.CreateContext())
         {
-            var service = new EtiquetaService(new EtiquetaRepository(context));
+            var usuarioAtual = new UsuarioAtualFake();
+            context.Users.Add(NovoUsuario(usuarioAtual.Id, "usuario-teste@local"));
+            await context.SaveChangesAsync();
+            var service = new EtiquetaService(new EtiquetaRepository(context, usuarioAtual), usuarioAtual);
             var urgente = await service.CriarAsync(new() { Nome = " Urgente " });
             Assert.Equal("Urgente", urgente.Nome);
             await Assert.ThrowsAsync<EtiquetaDuplicadaException>(() => service.CriarAsync(new() { Nome = "urgente" }));
@@ -72,8 +119,11 @@ public sealed class EtiquetaRepositoryTests
         await using var database = await CriarBancoAsync();
         await using (var gravacao = database.CreateContext())
         {
-            var projetos = new ProjetoRepository(gravacao);
-            var service = new ProjetoService(projetos);
+            var usuarioAtual = new UsuarioAtualFake();
+            gravacao.Users.Add(NovoUsuario(usuarioAtual.Id, "usuario-teste@local"));
+            await gravacao.SaveChangesAsync();
+            var projetos = new ProjetoRepository(gravacao, usuarioAtual);
+            var service = new ProjetoService(projetos, usuarioAtual);
             var infraestrutura = await service.CriarAsync(new() { Nome = " Infraestrutura " });
             await service.CriarAsync(new() { Nome = "Financeiro" });
             await Assert.ThrowsAsync<ProjetoDuplicadoException>(() => service.CriarAsync(new() { Nome = "infraestrutura" }));
@@ -123,17 +173,20 @@ public sealed class EtiquetaRepositoryTests
         await using var database = await CriarBancoAsync();
         await using (var gravacao = database.CreateContext())
         {
-            var projeto = new Projeto { Nome = "Projeto existente", NomeNormalizado = "PROJETO EXISTENTE" };
-            var etiqueta = new Etiqueta { Nome = "Etiqueta existente", NomeNormalizado = "ETIQUETA EXISTENTE" };
+            var usuarioAtual = new UsuarioAtualFake();
+            gravacao.Users.Add(NovoUsuario(usuarioAtual.Id, "usuario-teste@local"));
+            var projeto = new Projeto { UsuarioId = usuarioAtual.Id, Nome = "Projeto existente", NomeNormalizado = "PROJETO EXISTENTE" };
+            var etiqueta = new Etiqueta { UsuarioId = usuarioAtual.Id, Nome = "Etiqueta existente", NomeNormalizado = "ETIQUETA EXISTENTE" };
             gravacao.AddRange(projeto, etiqueta);
             await gravacao.SaveChangesAsync();
 
             var service = new TarefaService(
-                new TarefaRepository(gravacao),
+                new TarefaRepository(gravacao, usuarioAtual),
                 NullLogger<TarefaService>.Instance,
                 TimeProvider.System,
-                new EtiquetaRepository(gravacao),
-                new ProjetoRepository(gravacao));
+                new EtiquetaRepository(gravacao, usuarioAtual),
+                new ProjetoRepository(gravacao, usuarioAtual),
+                usuarioAtual: usuarioAtual);
 
             var resultado = await service.CriarAsync(new CriarTarefaRequest
             {
@@ -155,4 +208,5 @@ public sealed class EtiquetaRepositoryTests
 
     private static async Task<SqliteTestDatabase> CriarBancoAsync() { var database = new SqliteTestDatabase(); await database.InitializeAsync(); return database; }
     private static Tarefa NovaTarefa(string descricao, DateTime agora) => new() { Descricao = descricao, Situacao = SituacoesTarefa.Pendente, Prioridade = PrioridadesTarefa.Media, CriadaEm = agora, SituacaoAlteradaEm = agora };
+    private static Usuario NovoUsuario(string id, string email) => new() { Id = id, UserName = email, NormalizedUserName = email.ToUpperInvariant(), Email = email, NormalizedEmail = email.ToUpperInvariant() };
 }

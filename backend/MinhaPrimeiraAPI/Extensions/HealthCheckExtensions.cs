@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using MinhaPrimeiraAPI.Data;
+using ProjetoTarefas.Data;
 
-namespace MinhaPrimeiraAPI.Extensions;
+namespace ProjetoTarefas.Extensions;
 
 public static class HealthCheckExtensions
 {

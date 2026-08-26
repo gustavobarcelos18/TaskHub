@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace MinhaPrimeiraAPI.DTOs.Requests;
+namespace ProjetoTarefas.DTOs.Requests;
 
 public class CriarEtiquetaRequest
 {

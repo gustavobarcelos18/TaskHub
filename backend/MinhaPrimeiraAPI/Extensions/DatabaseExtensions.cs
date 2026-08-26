@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
-using MinhaPrimeiraAPI.Data;
+using ProjetoTarefas.Data;
 
-namespace MinhaPrimeiraAPI.Extensions;
+namespace ProjetoTarefas.Extensions;
 
 public static class DatabaseExtensions
 {

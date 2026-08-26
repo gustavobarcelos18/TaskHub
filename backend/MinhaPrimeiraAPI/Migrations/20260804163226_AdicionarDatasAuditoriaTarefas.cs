@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace MinhaPrimeiraAPI.Migrations
+namespace ProjetoTarefas.Migrations
 {
     /// <inheritdoc />
     public partial class AdicionarDatasAuditoriaTarefas : Migration
@@ -41,7 +41,7 @@ namespace MinhaPrimeiraAPI.Migrations
                 SET CRIADA_EM = CURRENT_TIMESTAMP,
                     SITUACAO_ALTERADA_EM = CURRENT_TIMESTAMP,
                     CONCLUIDA_EM = CASE
-                        WHEN TRIM(SITUACAO) = 'Concluída'
+                        WHEN TRIM(SITUACAO) = 'Concluï¿½da'
                             THEN CURRENT_TIMESTAMP
                         ELSE NULL
                     END;

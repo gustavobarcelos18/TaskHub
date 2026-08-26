@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.OpenApi;
 
-namespace MinhaPrimeiraAPI.Extensions;
+namespace ProjetoTarefas.Extensions;
 
 public static class SwaggerExtensions
 {
@@ -14,7 +14,7 @@ public static class SwaggerExtensions
         {
             options.SwaggerDoc("v1", new OpenApiInfo
             {
-                Title = "MinhaPrimeiraAPI",
+                Title = "ProjetoTarefas",
                 Version = "v1",
                 Description =
                     "Web API para gerenciamento de tarefas, com criação, " +
@@ -52,11 +52,11 @@ public static class SwaggerExtensions
         {
             options.SwaggerEndpoint(
                 "/swagger/v1/swagger.json",
-                "MinhaPrimeiraAPI v1"
+                "ProjetoTarefas v1"
             );
 
             options.DocumentTitle =
-                "MinhaPrimeiraAPI - Documentação";
+                "ProjetoTarefas - Documentação";
         });
 
         return app;

@@ -1,4 +1,4 @@
-using MinhaPrimeiraAPI.Extensions;
+using ProjetoTarefas.Extensions;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,9 +9,8 @@ try
 {
     builder.Services
         .AddApplicationDatabase(builder.Configuration, builder.Environment)
-        .AddApplicationServices()
+        .AddApplicationServices(builder.Environment)
         .AddApplicationSwagger()
-        .AddApplicationCors(builder.Configuration)
         .AddApplicationHealthChecks();
 
     var app = builder.Build();
@@ -20,12 +19,13 @@ try
     app.UseApplicationRequestLogging();
     app.UseApplicationExceptionHandler();
     app.UseHttpsRedirection();
-    app.UseApplicationCors();
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     app.MapControllers();
     app.MapHealthChecks("/health");
 
-    Log.Information("Iniciando a aplicação MinhaPrimeiraAPI");
+    Log.Information("Iniciando a aplicação ProjetoTarefas");
     app.Run();
 }
 catch (HostAbortedException)

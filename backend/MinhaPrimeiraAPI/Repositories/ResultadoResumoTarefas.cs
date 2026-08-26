@@ -1,4 +1,4 @@
-namespace MinhaPrimeiraAPI.Repositories;
+namespace ProjetoTarefas.Repositories;
 
 public sealed class ResultadoResumoTarefas
 {
