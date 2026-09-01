@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using ProjetoTarefas.Data;
 using ProjetoTarefas.Models;
 using ProjetoTarefas.Repositories;
+using ProjetoTarefas.Tests.Fakes;
 using ProjetoTarefas.Tests.Infrastructure;
 
 namespace ProjetoTarefas.Tests.Repositories;
@@ -9,9 +11,10 @@ public sealed class TarefaRepositoryTests
 {
     private static readonly DateOnly Hoje = new(2030, 1, 2);
     private static readonly DateTime CriadaEm = new(2030, 1, 1, 8, 0, 0, DateTimeKind.Utc);
+    private static readonly UsuarioAtualFake UsuarioAtual = new();
 
     [Fact]
-    public async Task ListarAtivasAsync_DeveAplicarFiltroGlobalEExcluirTarefaExcluidaDoResumo()
+    public async Task ListarAtivasAsync_DeveAplicarFiltroGlobalEExcluirTarefaExcluida()
     {
         await using var database = await CriarBancoAsync();
         var ativa = NovaTarefa("Ativa", SituacoesTarefa.Pendente);
@@ -20,15 +23,12 @@ public sealed class TarefaRepositoryTests
         await SalvarTarefasAsync(database, ativa, excluida);
 
         await using var context = database.CreateContext();
-        var repository = new TarefaRepository(context);
+        var repository = CriarRepository(context);
 
         var resultado = await repository.ListarAtivasAsync(Consulta());
-        var resumo = await repository.ObterResumoAtivasAsync(Hoje);
 
         Assert.Equal([ativa.Id], resultado.Itens.Select(tarefa => tarefa.Id));
         Assert.Equal(1, resultado.TotalItens);
-        Assert.Equal(1, resumo.Total);
-        Assert.Equal(1, resumo.Pendentes);
 
         await using var verificacao = database.CreateContext();
         Assert.Equal(2, await verificacao.Tarefas.IgnoreQueryFilters().CountAsync());
@@ -48,7 +48,7 @@ public sealed class TarefaRepositoryTests
         }
 
         await using var consultaContext = database.CreateContext();
-        var repository = new TarefaRepository(consultaContext);
+        var repository = CriarRepository(consultaContext);
 
         var lixeira = await repository.ListarExcluidasAsync();
         var encontrada = await repository.BuscarIncluindoExcluidasPorIdAsync(excluida.Id);
@@ -71,7 +71,7 @@ public sealed class TarefaRepositoryTests
         await SalvarTarefasAsync(database, esperada, prioridadeDiferente, situacaoDiferente, buscaDiferente);
 
         await using var context = database.CreateContext();
-        var resultado = await new TarefaRepository(context).ListarAtivasAsync(Consulta(
+        var resultado = await CriarRepository(context).ListarAtivasAsync(Consulta(
             busca: "Relatório",
             situacao: SituacoesTarefa.EmAndamento,
             prioridade: PrioridadesTarefa.Alta,
@@ -90,7 +90,7 @@ public sealed class TarefaRepositoryTests
         await SalvarTarefasAsync(database, encontrada, outra);
 
         await using var context = database.CreateContext();
-        var repository = new TarefaRepository(context);
+        var repository = CriarRepository(context);
 
         var resultadoEncontrado = await repository.ListarAtivasAsync(Consulta(busca: "relatório"));
         var resultadoInexistente = await repository.ListarAtivasAsync(Consulta(busca: "inexistente"));
@@ -113,21 +113,17 @@ public sealed class TarefaRepositoryTests
         await SalvarTarefasAsync(database, vencida, hoje, proxima, semVencimento, vencidaConcluida);
 
         await using var context = database.CreateContext();
-        var repository = new TarefaRepository(context);
+        var repository = CriarRepository(context);
 
         var vencidas = await repository.ListarAtivasAsync(Consulta(prazo: FiltroPrazoTarefa.Vencidas));
         var vencemHoje = await repository.ListarAtivasAsync(Consulta(prazo: FiltroPrazoTarefa.VencemHoje));
         var proximas = await repository.ListarAtivasAsync(Consulta(prazo: FiltroPrazoTarefa.Proximas));
         var semPrazo = await repository.ListarAtivasAsync(Consulta(prazo: FiltroPrazoTarefa.SemVencimento));
-        var resumo = await repository.ObterResumoAtivasAsync(Hoje);
 
         Assert.Equal([vencida.Id], vencidas.Itens.Select(tarefa => tarefa.Id));
         Assert.Equal([hoje.Id], vencemHoje.Itens.Select(tarefa => tarefa.Id));
         Assert.Equal([proxima.Id], proximas.Itens.Select(tarefa => tarefa.Id));
         Assert.Equal([semVencimento.Id], semPrazo.Itens.Select(tarefa => tarefa.Id));
-        Assert.Equal(1, resumo.Vencidas);
-        Assert.Equal(1, resumo.VencemHoje);
-        Assert.Equal(1, resumo.Proximas);
     }
 
     [Fact]
@@ -141,7 +137,7 @@ public sealed class TarefaRepositoryTests
         await SalvarTarefasAsync(database, futura, passada, semPrazo);
 
         await using var contextoLeitura = database.CreateContext();
-        var repository = new TarefaRepository(contextoLeitura);
+        var repository = CriarRepository(contextoLeitura);
         var crescente = await repository.ListarAtivasAsync(Consulta(ordenarPor: CampoOrdenacaoTarefa.DataVencimento, direcao: DirecaoOrdenacao.Asc));
         var decrescente = await repository.ListarAtivasAsync(Consulta(ordenarPor: CampoOrdenacaoTarefa.DataVencimento, direcao: DirecaoOrdenacao.Desc));
 
@@ -161,7 +157,7 @@ public sealed class TarefaRepositoryTests
         await SalvarTarefasAsync(database, media, baixa, alta);
 
         await using var context = database.CreateContext();
-        var repository = new TarefaRepository(context);
+        var repository = CriarRepository(context);
         var crescente = await repository.ListarAtivasAsync(Consulta(ordenarPor: CampoOrdenacaoTarefa.Prioridade, direcao: DirecaoOrdenacao.Asc));
         var decrescente = await repository.ListarAtivasAsync(Consulta(ordenarPor: CampoOrdenacaoTarefa.Prioridade, direcao: DirecaoOrdenacao.Desc));
 
@@ -181,7 +177,7 @@ public sealed class TarefaRepositoryTests
         await SalvarTarefasAsync(database, c, a, d, b);
 
         await using var context = database.CreateContext();
-        var repository = new TarefaRepository(context);
+        var repository = CriarRepository(context);
         var primeiraPagina = await repository.ListarAtivasAsync(Consulta(ordenarPor: CampoOrdenacaoTarefa.Descricao, direcao: DirecaoOrdenacao.Asc, tamanhoPagina: 2));
         var segundaPagina = await repository.ListarAtivasAsync(Consulta(ordenarPor: CampoOrdenacaoTarefa.Descricao, direcao: DirecaoOrdenacao.Asc, pagina: 2, tamanhoPagina: 2));
 
@@ -201,7 +197,7 @@ public sealed class TarefaRepositoryTests
 
         await using (var contextoGravacao = database.CreateContext())
         {
-            var repository = new TarefaRepository(contextoGravacao);
+            var repository = CriarRepository(contextoGravacao);
             repository.Adicionar(tarefa);
             repository.AdicionarHistorico(dezHoras);
             repository.AdicionarHistorico(oitoHoras);
@@ -210,7 +206,7 @@ public sealed class TarefaRepositoryTests
         }
 
         await using var contextoLeitura = database.CreateContext();
-        var historicos = await new TarefaRepository(contextoLeitura).ListarHistoricoAsync(tarefa.Id);
+        var historicos = await CriarRepository(contextoLeitura).ListarHistoricoAsync(tarefa.Id);
 
         Assert.Equal([dozeHoras.Id, dezHoras.Id, oitoHoras.Id], historicos.Select(historico => historico.Id));
         var alteracao = Assert.Single(historicos, historico => historico.Tipo == TiposHistoricoTarefa.AlteracaoDescricao);
@@ -238,7 +234,7 @@ public sealed class TarefaRepositoryTests
 
         await using (var contextoRemocao = database.CreateContext())
         {
-            var repository = new TarefaRepository(contextoRemocao);
+            var repository = CriarRepository(contextoRemocao);
             var encontrada = await repository.BuscarIncluindoExcluidasPorIdAsync(tarefa.Id);
             repository.Remover(Assert.IsType<Tarefa>(encontrada));
             await repository.SalvarAlteracoesAsync();
@@ -260,7 +256,7 @@ public sealed class TarefaRepositoryTests
         await SalvarTarefasAsync(database, comObservacoes, semObservacoes);
 
         await using var context = database.CreateContext();
-        var repository = new TarefaRepository(context);
+        var repository = CriarRepository(context);
         var carregada = await repository.BuscarAtivaPorIdAsync(comObservacoes.Id);
         var carregadaSemObservacoes = await repository.BuscarAtivaPorIdAsync(semObservacoes.Id);
 
@@ -272,6 +268,16 @@ public sealed class TarefaRepositoryTests
     {
         var database = new SqliteTestDatabase();
         await database.InitializeAsync();
+
+        await using var context = database.CreateContext();
+        context.Users.Add(new Usuario
+        {
+            Id = UsuarioAtual.Id,
+            UserName = "usuario-teste@local",
+            NormalizedUserName = "USUARIO-TESTE@LOCAL"
+        });
+        await context.SaveChangesAsync();
+
         return database;
     }
 
@@ -291,6 +297,7 @@ public sealed class TarefaRepositoryTests
     {
         return new Tarefa
         {
+            UsuarioId = UsuarioAtual.Id,
             Descricao = descricao,
             Situacao = situacao,
             Prioridade = prioridade,
@@ -300,6 +307,11 @@ public sealed class TarefaRepositoryTests
             ConcluidaEm = situacao == SituacoesTarefa.Concluida ? CriadaEm : null,
             ExcluidaEm = excluidaEm
         };
+    }
+
+    private static TarefaRepository CriarRepository(AppDbContext context)
+    {
+        return new TarefaRepository(context, UsuarioAtual);
     }
 
     private static ConsultaTarefas Consulta(

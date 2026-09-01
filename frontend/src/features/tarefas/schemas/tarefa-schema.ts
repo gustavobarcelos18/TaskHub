@@ -26,11 +26,15 @@ export const tarefaSchema = z.object({
   situacao: z.enum(SITUACOES_TAREFA, {
     message: "Selecione uma situação válida.",
   }),
-  prioridade: z.enum(PRIORIDADES_TAREFA, { message: "Selecione uma prioridade v\u00e1lida." }),
-  dataVencimento: z.string().refine(
-    (valor) => valor === "" || ehDataCivilValida(valor),
-    "Informe uma data v\u00e1lida no formato dd/mm/aaaa.",
-  ),
+  prioridade: z.enum(PRIORIDADES_TAREFA, {
+    message: "Selecione uma prioridade v\u00e1lida.",
+  }),
+  dataVencimento: z
+    .string()
+    .refine(
+      (valor) => valor === "" || ehDataCivilValida(valor),
+      "Informe uma data v\u00e1lida no formato dd/mm/aaaa.",
+    ),
   projetoId: z.number().int().positive().nullable(),
   etiquetaIds: z.array(z.number().int().positive()),
 });

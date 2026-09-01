@@ -14,12 +14,35 @@ export function ProtecaoRotas({ children }: { children: React.ReactNode }) {
   const ehRotaAutenticacao = rotasAutenticacao.has(pathname);
 
   useEffect(() => {
-    if (estado.status === "anonimo" && !ehRotaAutenticacao) router.replace("/login");
-    if (estado.status === "autenticado" && ehRotaAutenticacao) router.replace("/");
+    if (estado.status === "anonimo" && !ehRotaAutenticacao)
+      router.replace("/login");
+    if (estado.status === "autenticado" && ehRotaAutenticacao)
+      router.replace("/");
   }, [ehRotaAutenticacao, estado.status, router]);
 
-  if (estado.status === "carregando") return <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center" }}><CircularProgress aria-label="Carregando sessão" /></Box>;
-  if (estado.status === "erro") return <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2 }}><Stack spacing={2}><Alert severity="error">Não foi possível verificar sua sessão.</Alert><Button variant="contained" onClick={() => void atualizarSessao()}>Tentar novamente</Button></Stack></Box>;
-  if ((estado.status === "anonimo" && !ehRotaAutenticacao) || (estado.status === "autenticado" && ehRotaAutenticacao)) return null;
+  if (estado.status === "carregando")
+    return (
+      <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+        <CircularProgress aria-label="Carregando sessão" />
+      </Box>
+    );
+  if (estado.status === "erro")
+    return (
+      <Box
+        sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2 }}
+      >
+        <Stack spacing={2}>
+          <Alert severity="error">Não foi possível verificar sua sessão.</Alert>
+          <Button variant="contained" onClick={() => void atualizarSessao()}>
+            Tentar novamente
+          </Button>
+        </Stack>
+      </Box>
+    );
+  if (
+    (estado.status === "anonimo" && !ehRotaAutenticacao) ||
+    (estado.status === "autenticado" && ehRotaAutenticacao)
+  )
+    return null;
   return <>{children}</>;
 }

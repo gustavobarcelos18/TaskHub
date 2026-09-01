@@ -60,51 +60,6 @@ public sealed class TarefaServiceTests
         Assert.Equal(source.Token, repository.UltimoCancellationToken);
     }
     [Fact]
-    public async Task ObterResumoAsync_DeveMapearOsQuatroContadoresDoRepository()
-    {
-        // Arrange
-        var tarefaRepository = new TarefaRepositoryFake
-        {
-            ResultadoResumoConfigurado = new ResultadoResumoTarefas
-            {
-                Total = 10,
-                Pendentes = 3,
-                EmAndamento = 2,
-                Concluidas = 4
-            }
-        };
-
-        var tarefaService = CriarService(tarefaRepository);
-
-        // Act
-        var resultado = await tarefaService.ObterResumoAsync();
-
-        // Assert
-        Assert.Equal(10, resultado.Total);
-        Assert.Equal(3, resultado.Pendentes);
-        Assert.Equal(2, resultado.EmAndamento);
-        Assert.Equal(4, resultado.Concluidas);
-        Assert.Equal(1, tarefaRepository.QuantidadeChamadasObterResumoAtivas);
-    }
-
-    [Fact]
-    public async Task ObterResumoAsync_RepositoryComZeros_DeveRetornarQuatroZeros()
-    {
-        // Arrange
-        var tarefaRepository = new TarefaRepositoryFake();
-        var tarefaService = CriarService(tarefaRepository);
-
-        // Act
-        var resultado = await tarefaService.ObterResumoAsync();
-
-        // Assert
-        Assert.Equal(0, resultado.Total);
-        Assert.Equal(0, resultado.Pendentes);
-        Assert.Equal(0, resultado.EmAndamento);
-        Assert.Equal(0, resultado.Concluidas);
-    }
-
-    [Fact]
     public async Task ListarAsync_DeveRetornarTodasAsTarefasAtivasMapeadas()
     {
         // Arrange
@@ -1011,8 +966,12 @@ public sealed class TarefaServiceTests
 
         var resultado = await CriarService(repositorio).ListarAsync(new ConsultaTarefasRequest
         {
-            Busca = "  relatório  ", Situacao = " pendente ", OrdenarPor = "descricao",
-            Direcao = "asc", Pagina = 2, TamanhoPagina = 10
+            Busca = "  relatório  ",
+            Situacao = " pendente ",
+            OrdenarPor = "descricao",
+            Direcao = "asc",
+            Pagina = 2,
+            TamanhoPagina = 10
         });
 
         Assert.Equal("relatório", repositorio.UltimaConsultaTarefas!.Busca);
@@ -1085,20 +1044,20 @@ public sealed class TarefaServiceTests
     [Fact]
     public async Task AtualizarAsync_AlterandoDescricao_DeveRegistrarValoresAnteriorENovo()
     {
-        var tarefa = CriarTarefa(120, "DescriÃ§Ã£o anterior", "Pendente");
+        var tarefa = CriarTarefa(120, "Descrição anterior", "Pendente");
         var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
 
         await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
         {
-            Descricao = "DescriÃ§Ã£o nova",
+            Descricao = "Descrição nova",
             Situacao = tarefa.Situacao
         });
 
         var historico = Assert.IsType<HistoricoTarefa>(repositorio.HistoricoAdicionado);
         Assert.Equal(TiposHistoricoTarefa.AlteracaoDescricao, historico.Tipo);
         Assert.Equal("Descricao", historico.Campo);
-        Assert.Equal("DescriÃ§Ã£o anterior", historico.ValorAnterior);
-        Assert.Equal("DescriÃ§Ã£o nova", historico.ValorNovo);
+        Assert.Equal("Descrição anterior", historico.ValorAnterior);
+        Assert.Equal("Descrição nova", historico.ValorNovo);
         Assert.Equal(InstanteControlado.UtcDateTime, historico.CriadoEm);
     }
 
@@ -1269,7 +1228,7 @@ public sealed class TarefaServiceTests
     [Fact]
     public async Task AtualizarAsync_SemAlteracoes_NaoDeveRegistrarHistorico()
     {
-        var tarefa = CriarTarefa(125, "Sem alteraÃ§Ã£o", "Pendente");
+        var tarefa = CriarTarefa(125, "Sem alteração", "Pendente");
         var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
 
         await CriarService(repositorio).AtualizarAsync(tarefa.Id, new AtualizarTarefaRequest
@@ -1531,6 +1490,52 @@ public sealed class TarefaServiceTests
         Assert.Equal(1, repositorio.QuantidadeChamadasSalvarAlteracoes);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task CriarAsync_DescricaoVaziaOuComEspacos_DeveRejeitarSemPersistir(string descricao)
+    {
+        var repositorio = new TarefaRepositoryFake();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => CriarService(repositorio).CriarAsync(
+            new CriarTarefaRequest { Descricao = descricao }));
+
+        Assert.Equal(0, repositorio.QuantidadeChamadasAdicionar);
+        Assert.Equal(0, repositorio.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task CriarAsync_DescricaoAcimaDoLimite_DeveRejeitarSemPersistir()
+    {
+        var repositorio = new TarefaRepositoryFake();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => CriarService(repositorio).CriarAsync(
+            new CriarTarefaRequest { Descricao = new string('a', 201) }));
+
+        Assert.Equal(0, repositorio.QuantidadeChamadasAdicionar);
+        Assert.Equal(0, repositorio.QuantidadeChamadasSalvarAlteracoes);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ObservacoesAcimaDoLimite_DeveRejeitarSemPersistir()
+    {
+        var tarefa = CriarTarefa(133, "Tarefa válida", SituacoesTarefa.Pendente);
+        var repositorio = new TarefaRepositoryFake { TarefaRetornadaPorBuscaAtiva = tarefa };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => CriarService(repositorio).AtualizarAsync(
+            tarefa.Id,
+            new AtualizarTarefaRequest
+            {
+                Descricao = tarefa.Descricao,
+                Situacao = tarefa.Situacao,
+                Prioridade = tarefa.Prioridade,
+                Observacoes = new string('a', 4001)
+            }));
+
+        Assert.Equal(0, repositorio.QuantidadeChamadasSalvarAlteracoes);
+        Assert.Empty(repositorio.HistoricoTarefas);
+    }
+
     private static TarefaService CriarService(
         TarefaRepositoryFake tarefaRepository,
         TimeProvider? timeProvider = null)
@@ -1539,7 +1544,9 @@ public sealed class TarefaServiceTests
             tarefaRepository,
             NullLogger<TarefaService>.Instance,
             timeProvider ?? new TimeProviderFixo(InstanteControlado),
-            usuarioAtual: new UsuarioAtualFake()
+            new EtiquetaRepositoryFake(),
+            new ProjetoRepositoryFake(),
+            new UsuarioAtualFake()
         );
     }
 

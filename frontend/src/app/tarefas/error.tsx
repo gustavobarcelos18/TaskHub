@@ -18,7 +18,15 @@ export default function TarefasError({ reset }: TarefasErrorProps) {
   }
 
   return (
-    <Box component="main" sx={{ minHeight: "100vh", bgcolor: "background.default", px: { xs: 2, sm: 4 }, py: { xs: 4, sm: 6 } }}>
+    <Box
+      component="main"
+      sx={{
+        minHeight: "100vh",
+        bgcolor: "background.default",
+        px: { xs: 2, sm: 4 },
+        py: { xs: 4, sm: 6 },
+      }}
+    >
       <Container maxWidth="md">
         <Paper variant="outlined" sx={{ p: 4 }}>
           <Stack spacing={3}>

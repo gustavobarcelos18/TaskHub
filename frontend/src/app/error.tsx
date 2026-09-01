@@ -8,11 +8,11 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-type DashboardErrorProps = {
+type AppErrorProps = {
   reset: () => void;
 };
 
-export default function DashboardError({ reset }: DashboardErrorProps) {
+export default function AppError({ reset }: AppErrorProps) {
   return (
     <Box
       component="main"
@@ -29,7 +29,7 @@ export default function DashboardError({ reset }: DashboardErrorProps) {
             <Alert severity="error" variant="filled">
               <Stack spacing={1}>
                 <Typography variant="h6" component="h1">
-                  Não foi possível carregar o resumo das tarefas
+                  Não foi possível carregar a aplicação
                 </Typography>
 
                 <Typography variant="body2">

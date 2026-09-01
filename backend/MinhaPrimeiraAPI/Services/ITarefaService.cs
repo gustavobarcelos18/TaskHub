@@ -7,8 +7,6 @@ public interface ITarefaService
 {
     Task<TarefasPaginadasResponse> ListarAsync(ConsultaTarefasRequest consulta, CancellationToken cancellationToken = default);
 
-    Task<ResumoTarefasResponse> ObterResumoAsync(CancellationToken cancellationToken = default);
-
     Task<List<TarefaResponse>> ListarExcluidasAsync(CancellationToken cancellationToken = default);
 
     Task<TarefaResponse?> BuscarPorIdAsync(int id, CancellationToken cancellationToken = default);

@@ -20,10 +20,6 @@ export function IndicadorSituacaoTarefa({
   const configuracao = configuracaoPorSituacao[situacao];
 
   return (
-    <Chip
-      label={configuracao.label}
-      color={configuracao.color}
-      size="small"
-    />
+    <Chip label={configuracao.label} color={configuracao.color} size="small" />
   );
 }

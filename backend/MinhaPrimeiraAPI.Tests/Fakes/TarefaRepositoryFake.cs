@@ -23,8 +23,6 @@ internal sealed class TarefaRepositoryFake : ITarefaRepository
 
     public int QuantidadeChamadasListarAtivas { get; private set; }
 
-    public int QuantidadeChamadasObterResumoAtivas { get; private set; }
-
     public int QuantidadeChamadasListarExcluidas { get; private set; }
 
     public int QuantidadeChamadasBuscarAtiva { get; private set; }
@@ -55,10 +53,6 @@ internal sealed class TarefaRepositoryFake : ITarefaRepository
 
     public ResultadoConsultaTarefas? ResultadoConsultaConfigurado { get; set; }
 
-    public ResultadoResumoTarefas ResultadoResumoConfigurado { get; set; } = new();
-
-    public DateOnly? UltimaDataResumo { get; private set; }
-
     public Task<ResultadoConsultaTarefas> ListarAtivasAsync(ConsultaTarefas consulta, CancellationToken cancellationToken = default)
     {
         QuantidadeChamadasListarAtivas++;
@@ -70,15 +64,6 @@ internal sealed class TarefaRepositoryFake : ITarefaRepository
             Itens = TarefasAtivas,
             TotalItens = TarefasAtivas.Count
         });
-    }
-
-    public Task<ResultadoResumoTarefas> ObterResumoAtivasAsync(DateOnly hoje, CancellationToken cancellationToken = default)
-    {
-        QuantidadeChamadasObterResumoAtivas++;
-        UltimaDataResumo = hoje;
-        UltimoCancellationToken = cancellationToken;
-
-        return Task.FromResult(ResultadoResumoConfigurado);
     }
 
     public Task<List<Tarefa>> ListarExcluidasAsync(CancellationToken cancellationToken = default)

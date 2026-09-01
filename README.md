@@ -88,7 +88,7 @@ Na raiz do repositório:
 dotnet run --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj
 ```
 
-A API local usa `http://localhost:5025`. Em Development, o Swagger está disponível em `http://localhost:5025/swagger` e o health check em `http://localhost:5025/health`.
+A API local usa `https://localhost:7056`. Em Development, o Swagger está disponível em `https://localhost:7056/swagger` e o health check em `https://localhost:7056/health`.
 
 ### 2. Configurar e iniciar o frontend
 
@@ -102,10 +102,10 @@ npm run dev
 Em `.env.local`, mantenha a URL da API:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5025
+BACKEND_API_URL=https://localhost:7056
 ```
 
-O frontend local utiliza `http://localhost:3000`, origem já permitida pela configuração de Development do backend. Também estão disponíveis `npm run dev:api` e `npm run dev:all` para iniciar a API a partir do diretório do frontend.
+O frontend local utiliza HTTPS e encaminha `/api/*` para `BACKEND_API_URL`. Também estão disponíveis `npm run dev:api` e `npm run dev:all` para iniciar a API a partir do diretório do frontend.
 
 ## Principais fluxos da interface
 
@@ -143,7 +143,6 @@ As rotas principais são:
 | --- | --- | --- |
 | GET | `/health` | Verifica a disponibilidade da API e do SQLite. |
 | GET | `/api/tarefas` | Lista tarefas ativas com filtros, ordenação e paginação. |
-| GET | `/api/tarefas/resumo` | Retorna indicadores agregados das tarefas ativas. |
 | GET | `/api/tarefas/excluidas` | Lista a lixeira. |
 | GET | `/api/tarefas/{id}` | Consulta uma tarefa ativa. |
 | GET | `/api/tarefas/{id}/historico` | Consulta o histórico, inclusive de tarefa na lixeira. |
@@ -167,11 +166,11 @@ O backend usa a configuração padrão do ASP.NET Core: `appsettings.json` cont�
 
 | Ambiente | Arquivo | Uso |
 | --- | --- | --- |
-| `Development` | `appsettings.Development.json` | SQLite local, CORS para `http://localhost:3000` e host local. |
-| `Homologation` | `appsettings.Homologation.json` | Requer conexão, origens CORS e hosts fornecidos pela infraestrutura. |
+| `Development` | `appsettings.Development.json` | SQLite local e host local. |
+| `Homologation` | `appsettings.Homologation.json` | Requer conexão e hosts fornecidos pela infraestrutura. |
 | `Production` | `appsettings.Production.json` | Requer os valores operacionais fora do repositório. |
 
-Em Homologation e Production, informe ao menos `ConnectionStrings__DefaultConnection` e `Cors__AllowedOrigins__0` no ambiente de hospedagem. Não versione segredos, URLs definitivas ou caminhos de volumes persistentes. O [README do backend](backend/README.md#ambientes) contém um exemplo completo em PowerShell e o procedimento de migrations.
+Em Homologation e Production, informe ao menos `ConnectionStrings__DefaultConnection` e `AllowedHosts` no ambiente de hospedagem. O frontend usa um rewrite same-origin e recebe o endereço interno do backend por `BACKEND_API_URL`; a API não configura CORS para esse fluxo. Não versione segredos, URLs definitivas ou caminhos de volumes persistentes. O [README do backend](backend/README.md#ambientes) contém um exemplo completo em PowerShell e o procedimento de migrations.
 
 ## Banco, migrations e manutenção
 

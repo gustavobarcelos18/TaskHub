@@ -9,7 +9,12 @@ export type SituacaoTarefa = (typeof SITUACOES_TAREFA)[number];
 export const PRIORIDADES_TAREFA = ["Baixa", "Media", "Alta"] as const;
 export type PrioridadeTarefa = (typeof PRIORIDADES_TAREFA)[number];
 
-export const PRAZOS_TAREFA = ["vencidas", "vencemHoje", "proximas", "semVencimento"] as const;
+export const PRAZOS_TAREFA = [
+  "vencidas",
+  "vencemHoje",
+  "proximas",
+  "semVencimento",
+] as const;
 export type PrazoTarefa = (typeof PRAZOS_TAREFA)[number];
 
 export type Tarefa = {
@@ -57,7 +62,12 @@ export type HistoricoTarefa = {
   criadoEm: string;
 };
 
-export type OrdenarTarefasPor = "descricao" | "situacao" | "prioridade" | "dataVencimento" | "ultimaAtualizacao";
+export type OrdenarTarefasPor =
+  | "descricao"
+  | "situacao"
+  | "prioridade"
+  | "dataVencimento"
+  | "ultimaAtualizacao";
 export type DirecaoOrdenacao = "asc" | "desc";
 
 export type ConsultaTarefas = {
@@ -79,14 +89,4 @@ export type TarefasPaginadas = {
   tamanhoPagina: number;
   totalItens: number;
   totalPaginas: number;
-};
-
-export type ResumoTarefas = {
-  total: number;
-  pendentes: number;
-  emAndamento: number;
-  concluidas: number;
-  vencidas: number;
-  vencemHoje: number;
-  proximas: number;
 };

@@ -8,9 +8,9 @@ namespace ProjetoTarefas.Repositories;
 public class TarefaRepository : ITarefaRepository
 {
     private readonly AppDbContext _context;
-    private readonly IUsuarioAtual? _usuarioAtual;
+    private readonly IUsuarioAtual _usuarioAtual;
 
-    public TarefaRepository(AppDbContext context, IUsuarioAtual? usuarioAtual = null)
+    public TarefaRepository(AppDbContext context, IUsuarioAtual usuarioAtual)
     {
         _context = context;
         _usuarioAtual = usuarioAtual;
@@ -22,7 +22,7 @@ public class TarefaRepository : ITarefaRepository
     {
         IQueryable<Tarefa> tarefas = _context.Tarefas
             .AsNoTracking()
-            .Where(tarefa => _usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id);
+            .Where(tarefa => tarefa.UsuarioId == _usuarioAtual.Id);
 
         if (!string.IsNullOrWhiteSpace(consulta.Busca))
         {
@@ -81,27 +81,6 @@ public class TarefaRepository : ITarefaRepository
         };
     }
 
-    public async Task<ResultadoResumoTarefas> ObterResumoAtivasAsync(DateOnly hoje, CancellationToken cancellationToken = default)
-    {
-        var resumo = await _context.Tarefas
-            .AsNoTracking()
-            .Where(tarefa => _usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id)
-            .GroupBy(_ => 1)
-            .Select(grupo => new ResultadoResumoTarefas
-            {
-                Total = grupo.Count(),
-                Pendentes = grupo.Count(tarefa => tarefa.Situacao == SituacoesTarefa.Pendente),
-                EmAndamento = grupo.Count(tarefa => tarefa.Situacao == SituacoesTarefa.EmAndamento),
-                Concluidas = grupo.Count(tarefa => tarefa.Situacao == SituacoesTarefa.Concluida),
-                Vencidas = grupo.Count(tarefa => tarefa.DataVencimento < hoje && tarefa.Situacao != SituacoesTarefa.Concluida),
-                VencemHoje = grupo.Count(tarefa => tarefa.DataVencimento == hoje && tarefa.Situacao != SituacoesTarefa.Concluida),
-                Proximas = grupo.Count(tarefa => tarefa.DataVencimento > hoje && tarefa.Situacao != SituacoesTarefa.Concluida)
-            })
-            .SingleOrDefaultAsync(cancellationToken);
-
-        return resumo ?? new ResultadoResumoTarefas();
-    }
-
     private static IQueryable<Tarefa> Ordenar(
         IQueryable<Tarefa> tarefas,
         ConsultaTarefas consulta)
@@ -116,8 +95,14 @@ public class TarefaRepository : ITarefaRepository
                 tarefa.Prioridade == PrioridadesTarefa.Baixa ? 0 : tarefa.Prioridade == PrioridadesTarefa.Media ? 1 : 2).ThenBy(tarefa => tarefa.Id),
             (CampoOrdenacaoTarefa.Prioridade, DirecaoOrdenacao.Desc) => tarefas.OrderByDescending(tarefa =>
                 tarefa.Prioridade == PrioridadesTarefa.Baixa ? 0 : tarefa.Prioridade == PrioridadesTarefa.Media ? 1 : 2).ThenByDescending(tarefa => tarefa.Id),
-            (CampoOrdenacaoTarefa.DataVencimento, DirecaoOrdenacao.Asc) => tarefas.OrderBy(tarefa => tarefa.DataVencimento == null).ThenBy(tarefa => tarefa.DataVencimento).ThenBy(tarefa => tarefa.Id),
-            (CampoOrdenacaoTarefa.DataVencimento, DirecaoOrdenacao.Desc) => tarefas.OrderBy(tarefa => tarefa.DataVencimento == null).ThenByDescending(tarefa => tarefa.DataVencimento).ThenByDescending(tarefa => tarefa.Id),
+            (CampoOrdenacaoTarefa.DataVencimento, DirecaoOrdenacao.Asc) => tarefas
+                .OrderBy(tarefa => tarefa.DataVencimento == null)
+                .ThenBy(tarefa => tarefa.DataVencimento)
+                .ThenBy(tarefa => tarefa.Id),
+            (CampoOrdenacaoTarefa.DataVencimento, DirecaoOrdenacao.Desc) => tarefas
+                .OrderBy(tarefa => tarefa.DataVencimento == null)
+                .ThenByDescending(tarefa => tarefa.DataVencimento)
+                .ThenByDescending(tarefa => tarefa.Id),
             (CampoOrdenacaoTarefa.UltimaAtualizacao, DirecaoOrdenacao.Asc) => tarefas.OrderBy(tarefa => tarefa.ModificadaEm ?? tarefa.CriadaEm).ThenBy(tarefa => tarefa.Id),
             _ => tarefas.OrderByDescending(tarefa => tarefa.ModificadaEm ?? tarefa.CriadaEm).ThenByDescending(tarefa => tarefa.Id)
         };
@@ -128,7 +113,7 @@ public class TarefaRepository : ITarefaRepository
         return await _context.Tarefas
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(tarefa => tarefa.ExcluidaEm != null && (_usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id))
+            .Where(tarefa => tarefa.ExcluidaEm != null && tarefa.UsuarioId == _usuarioAtual.Id)
             .Include(tarefa => tarefa.Projeto)
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
@@ -154,9 +139,9 @@ public class TarefaRepository : ITarefaRepository
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
             .FirstOrDefaultAsync(
-            tarefa => tarefa.Id == id && (_usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id),
-            cancellationToken
-        );
+                tarefa => tarefa.Id == id && tarefa.UsuarioId == _usuarioAtual.Id,
+                cancellationToken
+            );
     }
 
     public async Task<Tarefa?> BuscarIncluindoExcluidasPorIdAsync(int id, CancellationToken cancellationToken = default)
@@ -167,9 +152,9 @@ public class TarefaRepository : ITarefaRepository
             .Include(tarefa => tarefa.Etiquetas)
             .AsSplitQuery()
             .FirstOrDefaultAsync(
-                tarefa => tarefa.Id == id && (_usuarioAtual == null || tarefa.UsuarioId == _usuarioAtual.Id),
+                tarefa => tarefa.Id == id && tarefa.UsuarioId == _usuarioAtual.Id,
                 cancellationToken
-        );
+            );
     }
 
     public async Task<List<HistoricoTarefa>> ListarHistoricoAsync(int tarefaId, CancellationToken cancellationToken = default)
@@ -177,7 +162,7 @@ public class TarefaRepository : ITarefaRepository
         return await _context.HistoricosTarefas
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(historico => historico.TarefaId == tarefaId && (_usuarioAtual == null || historico.Tarefa.UsuarioId == _usuarioAtual.Id))
+            .Where(historico => historico.TarefaId == tarefaId && historico.Tarefa.UsuarioId == _usuarioAtual.Id)
             .OrderByDescending(historico => historico.CriadoEm)
             .ThenByDescending(historico => historico.Id)
             .ToListAsync(cancellationToken);

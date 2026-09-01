@@ -37,7 +37,8 @@ export default async function LixeiraPage() {
                 Lixeira
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Tarefas excluídas podem ser restauradas ou removidas permanentemente.
+                Tarefas excluídas podem ser restauradas ou removidas
+                permanentemente.
               </Typography>
             </Box>
           </Stack>

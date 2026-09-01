@@ -35,23 +35,22 @@ O host do ASP.NET Core carrega `appsettings.json` e, em seguida, o arquivo `apps
 
 | Ambiente | Arquivo | Uso e comportamento |
 | --- | --- | --- |
-| `Development` | `appsettings.Development.json` | Uso local. Configura SQLite em `Database/tarefas.db`, CORS para `http://localhost:3000` e host `localhost`. |
-| `Homologation` | `appsettings.Homologation.json` | Validação prévia à produção. Exige que conexão, CORS e hosts sejam fornecidos pela infraestrutura. |
-| `Production` | `appsettings.Production.json` | Ambiente produtivo. Também exige esses valores fora do repositório. |
+| `Development` | `appsettings.Development.json` | Uso local. Configura SQLite em `Database/tarefas.db` e host `localhost`. |
+| `Homologation` | `appsettings.Homologation.json` | Validação prévia à produção. Exige que conexão e hosts sejam fornecidos pela infraestrutura. |
+| `Production` | `appsettings.Production.json` | Ambiente produtivo. Também exige conexão e hosts fora do repositório. |
 
-Homologação e Produção deixam `DefaultConnection` e `Cors:AllowedOrigins` propositalmente vazios. Assim, o fail-fast existente impede o uso de um banco ou frontend local por engano. Não inclua URLs definitivas, caminhos de volume, credenciais ou segredos nesses arquivos versionados.
+Homologação e Produção deixam `DefaultConnection` e `AllowedHosts` propositalmente vazios. O fail-fast da conexão impede o uso de um banco local por engano. Não inclua URLs definitivas, caminhos de volume, credenciais ou segredos nesses arquivos versionados.
 
 Exemplo de inicialização em Homologação no PowerShell:
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = "Homologation"
 $env:ConnectionStrings__DefaultConnection = "Data Source=C:\dados\projetotarefas-hml\tarefas.db"
-$env:Cors__AllowedOrigins__0 = "https://hml.app.exemplo.com"
 $env:AllowedHosts = "hml.api.exemplo.com"
 dotnet run --no-launch-profile --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj
 ```
 
-O `--no-launch-profile` é necessário nesse exemplo porque `Properties/launchSettings.json` é destinado à execução local e define `Development`. Para Produção, use `ASPNETCORE_ENVIRONMENT=Production` e valores equivalentes apontando para o volume persistente e os domínios produtivos. Se houver mais de uma origem permitida, informe índices adicionais, como `Cors__AllowedOrigins__1`. Em servidores, cadastre essas variáveis no mecanismo de configuração da plataforma, e não em scripts ou arquivos versionados.
+O `--no-launch-profile` é necessário nesse exemplo porque `Properties/launchSettings.json` é destinado à execução local e define `Development`. Para Produção, use `ASPNETCORE_ENVIRONMENT=Production` e valores equivalentes apontando para o volume persistente e os domínios produtivos. Em servidores, cadastre essas variáveis no mecanismo de configuração da plataforma, e não em scripts ou arquivos versionados.
 
 ### Migrations e ambiente novo
 
@@ -67,29 +66,35 @@ Para um banco novo em outro local, informe uma connection string isolada:
 dotnet ef database update --project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj --startup-project backend/MinhaPrimeiraAPI/ProjetoTarefas.csproj --connection "Data Source=C:\dados\tarefas.db"
 ```
 
-A sequência manual de implantação é: configurar as variáveis de ambiente, aplicar migrations, iniciar o backend, verificar `/health`, configurar `NEXT_PUBLIC_API_URL` no frontend e iniciar/buildar o frontend.
+A sequência manual de implantação é: configurar as variáveis de ambiente, aplicar migrations, iniciar o backend, verificar `/health`, configurar `BACKEND_API_URL` no frontend e iniciar/buildar o frontend.
 
 ### Backup e restore
 
-Os scripts PowerShell usam a API de backup do SQLite, em vez de copiar o arquivo enquanto ele pode estar em escrita. Compile o backend uma vez para disponibilizar o provedor SQLite e pare a API antes da operação; o parâmetro explícito `-ApiStopped` evita execução acidental com a API ativa.
+Os scripts PowerShell usam a API de backup do SQLite, em vez de copiar o arquivo enquanto ele pode estar em escrita. Eles verificam a integridade da origem antes da operação. Compile o backend uma vez para disponibilizar o provedor SQLite e pare a API antes da operação; o parâmetro explícito `-ApiStopped` evita execução acidental com a API ativa.
 
 ```powershell
 dotnet build ProjetoTarefas.slnx
 .\scripts\backup-database.ps1 -ApiStopped
-.\scripts\restore-database.ps1 -BackupPath .\backups\tarefas-AAAAMMDD-HHMMSS.db -ApiStopped
+.\scripts\restore-database.ps1 -BackupPath .\backups\tarefas-AAAAMMDD-HHMMSS-fff.db -ApiStopped
 ```
 
-O backup é salvo por padrão em `backups/tarefas-AAAAMMDD-HHMMSS.db`, diretório ignorado pelo Git. O restore preserva antes o banco atual como `tarefas-pre-restore-AAAAMMDD-HHMMSS.db` no diretório do banco. Depois do restore, inicie a API, consulte `/health` e confirme os dados esperados e `PRAGMA integrity_check` em um cliente SQLite. Os scripts são administrativos, sem endpoint HTTP de backup.
+O backup é salvo por padrão em `backups/tarefas-AAAAMMDD-HHMMSS-fff.db`, diretório ignorado pelo Git. O restore preserva antes o banco atual como `tarefas-pre-restore-AAAAMMDD-HHMMSS-fff.db` no diretório do banco. Depois do restore, inicie a API, consulte `/health` e confirme os dados esperados. Os scripts são administrativos, sem endpoint HTTP de backup.
 
 ### Logging e limitações
 
 Serilog grava no console e em `Logs/api-.log`, com arquivo diário, rotação por 10 MB e retenção de 30 arquivos. O nível padrão é Information, reduzindo ASP.NET Core a Warning. Não há agendamento, criptografia ou envio externo de backups nesta aplicação.
 
-## Configuração, CORS e banco
+### Dashboard técnico de logs
+
+Os eventos estruturados também são persistidos em `Database/logs.db`, separado do banco de negócio `tarefas.db`. A tabela própria mantém os campos técnicos conhecidos (nível, evento, usuário, método, caminho, status, duração e `TraceIdentifier`) e uma allowlist de propriedades seguras. A retenção padrão é de 30 dias e é aplicada na inicialização, sem limpeza por requisição.
+
+`GET /api/logs` exige autenticação e `TechnicalDiagnostics:Enabled`. A consulta tem paginação server-side, ordenação mais recente primeiro e filtros por nível, usuário, período, status, método, caminho, trace ID e texto. Consultas do próprio dashboard são omitidas da visão padrão para evitar que a tela seja dominada por seus próprios acessos, mas continuam armazenadas.
+
+## Configuração e banco
 
 A chave `ConnectionStrings:DefaultConnection` de `appsettings.Development.json` aponta, por padrão, para o SQLite `Database/tarefas.db` relativo ao projeto backend. Configurações ASP.NET Core podem ser sobrescritas por variáveis de ambiente, como `ConnectionStrings__DefaultConnection`. Não inclua segredos em arquivos versionados.
 
-`Cors:AllowedOrigins` define as origens permitidas; o padrão de Development é `http://localhost:3000`, compatível com o frontend Next.js. Altere essa configuração por ambiente se a origem do frontend mudar. A política não usa `AllowAnyOrigin`.
+O navegador acessa somente o Next.js, que encaminha `/api/*` para `BACKEND_API_URL`. Se outro cliente web passar a chamar a API diretamente de uma origem diferente, será necessário projetar e configurar uma política CORS explícita para esse novo cenário.
 
 O aplicativo não aplica migrations automaticamente. Para aplicar a cadeia existente:
 
@@ -110,7 +115,6 @@ Arquivos `.db`, `.db-shm` e `.db-wal` em `Database/` são ignorados pelo Git. A 
 | Método | Rota | Sucesso | Erros documentados |
 | --- | --- | --- | --- |
 | GET | `/api/tarefas` | 200 `TarefasPaginadasResponse` | 400 |
-| GET | `/api/tarefas/resumo` | 200 `ResumoTarefasResponse` | — |
 | GET | `/api/tarefas/excluidas` | 200 `TarefaResponse[]` | — |
 | GET | `/api/tarefas/{id}` | 200 `TarefaResponse` | 400, 404 |
 | GET | `/api/tarefas/{id}/historico` | 200 `HistoricoTarefaResponse[]` | 400, 404 |
@@ -167,9 +171,9 @@ A resposta paginada possui `itens`, `paginaAtual`, `tamanhoPagina`, `totalItens`
 GET /api/tarefas?prioridade=Alta&prazo=vencidas&ordenarPor=dataVencimento&direcao=asc&pagina=1&tamanhoPagina=10
 ```
 
-### Resumo, histórico e datas
+### Histórico e datas
 
-`GET /api/tarefas/resumo` retorna `total`, `pendentes`, `emAndamento` e `concluidas` para tarefas ativas. O histórico retorna `id`, `tipo`, `campo`, `valorAnterior`, `valorNovo` e `criadoEm`, em ordem decrescente de criação. Tipos de histórico: `Criacao`, `AlteracaoDescricao`, `AlteracaoPrioridade`, `AlteracaoDataVencimento`, `Conclusao`, `Reabertura`, `Exclusao` e `Restauracao`.
+O histórico retorna `id`, `tipo`, `campo`, `valorAnterior`, `valorNovo` e `criadoEm`, em ordem decrescente de criação. Tipos de histórico: `Criacao`, `AlteracaoDescricao`, `AlteracaoPrioridade`, `AlteracaoDataVencimento`, `Conclusao`, `Reabertura`, `Exclusao` e `Restauracao`.
 
 Campos de auditoria (`criadaEm`, `modificadaEm`, `situacaoAlteradaEm`, `concluidaEm`, `excluidaEm` e `criadoEm` do histórico) representam instantes UTC gerados pelo backend. Eles são distintos de `dataVencimento`.
 

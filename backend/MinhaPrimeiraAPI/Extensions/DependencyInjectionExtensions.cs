@@ -9,9 +9,7 @@ namespace ProjetoTarefas.Extensions;
 
 public static class DependencyInjectionExtensions
 {
-    public static IServiceCollection AddApplicationServices(
-        this IServiceCollection services,
-        IHostEnvironment environment)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
         services.AddApplicationProblemDetails();
@@ -35,6 +33,9 @@ public static class DependencyInjectionExtensions
             options.Password.RequireLowercase = true;
             options.Password.RequireUppercase = true;
             options.Password.RequireNonAlphanumeric = true;
+            options.Lockout.AllowedForNewUsers = true;
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
         })
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
@@ -63,6 +64,18 @@ public static class DependencyInjectionExtensions
         services.AddAuthorization();
 
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<HealthDiagnosticsService>();
+        services.AddSingleton<LogService>();
+        services.AddSingleton<ILogRepository>(provider =>
+        {
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            var dataSource = configuration["TechnicalLogging:ConnectionString"] ?? "Data Source=Database/logs.db";
+            if (dataSource.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
+                dataSource = dataSource["Data Source=".Length..];
+            if (!Path.IsPathFullyQualified(dataSource))
+                dataSource = Path.Combine(provider.GetRequiredService<IHostEnvironment>().ContentRootPath, dataSource);
+            return new LogRepository(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = dataSource }.ToString());
+        });
 
         services.AddScoped<ITarefaRepository, TarefaRepository>();
         services.AddScoped<ITarefaService, TarefaService>();

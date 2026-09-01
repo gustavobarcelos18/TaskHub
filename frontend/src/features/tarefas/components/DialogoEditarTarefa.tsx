@@ -26,8 +26,15 @@ import {
 } from "../schemas/tarefa-schema";
 
 import { atualizarTarefa } from "../services/tarefa-service";
-import { PRIORIDADES_TAREFA, SITUACOES_TAREFA, type Tarefa } from "../types/tarefa";
-import { converterDataParaFormulario, mascararDataCivil } from "../utils/formatar-data";
+import {
+  PRIORIDADES_TAREFA,
+  SITUACOES_TAREFA,
+  type Tarefa,
+} from "../types/tarefa";
+import {
+  converterDataParaFormulario,
+  mascararDataCivil,
+} from "../utils/formatar-data";
 import { SeletorEtiquetas } from "./SeletorEtiquetas";
 import { SeletorProjeto } from "./SeletorProjeto";
 
@@ -74,7 +81,7 @@ export function DialogoEditarTarefa({
       await atualizarTarefa(tarefa.id, dados);
 
       onOpenChange(false);
-      onSuccess(dados.situacao === "Concluída" && tarefa.situacao !== "Concluída" ? "Tarefa concluída com sucesso." : tarefa.situacao === "Concluída" && dados.situacao !== "Concluída" ? "Tarefa reaberta com sucesso." : "Tarefa atualizada com sucesso.");
+      onSuccess(obterMensagemSucesso(tarefa.situacao, dados.situacao));
       router.refresh();
     } catch (erro) {
       const mensagem =
@@ -101,7 +108,6 @@ export function DialogoEditarTarefa({
     >
       <DialogTitle id="dialogo-edicao-titulo" component="h2">
         Editar tarefa
-
         <IconButton
           aria-label="Fechar janela de edição"
           onClick={() => onOpenChange(false)}
@@ -152,7 +158,10 @@ export function DialogoEditarTarefa({
             minRows={4}
             slotProps={{ htmlInput: { maxLength: LIMITE_OBSERVACOES_TAREFA } }}
             error={Boolean(errors.observacoes)}
-            helperText={errors.observacoes?.message ?? `Opcional. Máximo de ${LIMITE_OBSERVACOES_TAREFA} caracteres.`}
+            helperText={
+              errors.observacoes?.message ??
+              `Opcional. Máximo de ${LIMITE_OBSERVACOES_TAREFA} caracteres.`
+            }
             fullWidth
             {...register("observacoes")}
           />
@@ -165,8 +174,22 @@ export function DialogoEditarTarefa({
             name="prioridade"
             control={control}
             render={({ field }) => (
-              <TextField id={`prioridade-${tarefa.id}`} label="Prioridade" select value={field.value} onChange={field.onChange} onBlur={field.onBlur} error={Boolean(errors.prioridade)} helperText={errors.prioridade?.message} fullWidth>
-                {PRIORIDADES_TAREFA.map((prioridade) => <MenuItem key={prioridade} value={prioridade}>{prioridade === "Media" ? "Média" : prioridade}</MenuItem>)}
+              <TextField
+                id={`prioridade-${tarefa.id}`}
+                label="Prioridade"
+                select
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={Boolean(errors.prioridade)}
+                helperText={errors.prioridade?.message}
+                fullWidth
+              >
+                {PRIORIDADES_TAREFA.map((prioridade) => (
+                  <MenuItem key={prioridade} value={prioridade}>
+                    {prioridade === "Media" ? "Média" : prioridade}
+                  </MenuItem>
+                ))}
               </TextField>
             )}
           />
@@ -180,9 +203,13 @@ export function DialogoEditarTarefa({
                 label="Data de vencimento"
                 placeholder="dd/mm/aaaa"
                 value={field.value}
-                onChange={(evento) => field.onChange(mascararDataCivil(evento.target.value))}
+                onChange={(evento) =>
+                  field.onChange(mascararDataCivil(evento.target.value))
+                }
                 onBlur={field.onBlur}
-                slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }}
+                slotProps={{
+                  htmlInput: { inputMode: "numeric", maxLength: 10 },
+                }}
                 error={Boolean(errors.dataVencimento)}
                 helperText={errors.dataVencimento?.message ?? "Opcional"}
                 fullWidth
@@ -242,4 +269,19 @@ export function DialogoEditarTarefa({
       </DialogContent>
     </Dialog>
   );
+}
+
+function obterMensagemSucesso(
+  situacaoAnterior: Tarefa["situacao"],
+  novaSituacao: Tarefa["situacao"],
+): string {
+  if (novaSituacao === "Concluída" && situacaoAnterior !== "Concluída") {
+    return "Tarefa concluída com sucesso.";
+  }
+
+  if (situacaoAnterior === "Concluída" && novaSituacao !== "Concluída") {
+    return "Tarefa reaberta com sucesso.";
+  }
+
+  return "Tarefa atualizada com sucesso.";
 }

@@ -15,15 +15,14 @@ public static class LoggingExtensions
 
         Directory.CreateDirectory(pastaLogs);
 
-        var caminhoLog = Path.Combine(
-            pastaLogs,
-            "api-.log"
-        );
-
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .MinimumLevel.Override(
                 "Microsoft.AspNetCore",
+                LogEventLevel.Warning
+            )
+            .MinimumLevel.Override(
+                "Microsoft.EntityFrameworkCore.Database.Command",
                 LogEventLevel.Warning
             )
             .Enrich.FromLogContext()
@@ -32,21 +31,7 @@ public static class LoggingExtensions
                 "ProjetoTarefas"
             )
             .WriteTo.Console()
-            .WriteTo.File(
-                path: caminhoLog,
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 30,
-                rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 10_000_000,
-                shared: true,
-                outputTemplate:
-                    "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} " +
-                    "[{Level:u3}] " +
-                    "[{SourceContext}] " +
-                    "{Message:lj} " +
-                    "| RequestId={RequestId}" +
-                    "{NewLine}{Exception}"
-            )
+            .WriteTo.File(Path.Combine(pastaLogs, "api-.log"), rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30, rollOnFileSizeLimit: true, fileSizeLimitBytes: 10_000_000, shared: true, outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj} | RequestId={RequestId}{NewLine}{Exception}")
             .CreateLogger();
 
         builder.Services.AddSerilog();

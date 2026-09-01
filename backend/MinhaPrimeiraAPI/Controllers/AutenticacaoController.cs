@@ -106,7 +106,7 @@ public class AutenticacaoController(
 
         var usuario = await userManager.FindByEmailAsync(email);
 
-        if (usuario is null || !await userManager.CheckPasswordAsync(usuario, request.Senha))
+        if (usuario is null)
         {
             return Problem(
                 detail: "E-mail ou senha inválidos.",
@@ -114,7 +114,21 @@ public class AutenticacaoController(
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
-        await signInManager.SignInAsync(usuario, isPersistent: false);
+        var resultado = await signInManager.PasswordSignInAsync(
+            usuario,
+            request.Senha,
+            isPersistent: false,
+            lockoutOnFailure: true
+        );
+
+        if (!resultado.Succeeded)
+        {
+            return Problem(
+                detail: "E-mail ou senha inválidos.",
+                title: "Não autenticado",
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
         return Ok(CriarResposta(usuario));
     }
 

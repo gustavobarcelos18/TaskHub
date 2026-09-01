@@ -8,28 +8,30 @@ namespace ProjetoTarefas.Services;
 
 public class TarefaService : ITarefaService
 {
+    private const int LimiteDescricao = 200;
+    private const int LimiteObservacoes = 4000;
     private static readonly TimeZoneInfo FusoHorarioNegocio = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
     private readonly ITarefaRepository _tarefaRepository;
     private readonly ILogger<TarefaService> _logger;
     private readonly TimeProvider _timeProvider;
-    private readonly IEtiquetaRepository? _etiquetaRepository;
-    private readonly IProjetoRepository? _projetoRepository;
+    private readonly IEtiquetaRepository _etiquetaRepository;
+    private readonly IProjetoRepository _projetoRepository;
     private readonly IUsuarioAtual _usuarioAtual;
 
     public TarefaService(
         ITarefaRepository tarefaRepository,
         ILogger<TarefaService> logger,
         TimeProvider timeProvider,
-        IEtiquetaRepository? etiquetaRepository = null,
-        IProjetoRepository? projetoRepository = null,
-        IUsuarioAtual? usuarioAtual = null)
+        IEtiquetaRepository etiquetaRepository,
+        IProjetoRepository projetoRepository,
+        IUsuarioAtual usuarioAtual)
     {
         _tarefaRepository = tarefaRepository;
         _logger = logger;
         _timeProvider = timeProvider;
         _etiquetaRepository = etiquetaRepository;
         _projetoRepository = projetoRepository;
-        _usuarioAtual = usuarioAtual ?? throw new ArgumentNullException(nameof(usuarioAtual));
+        _usuarioAtual = usuarioAtual;
     }
 
     public async Task<TarefasPaginadasResponse> ListarAsync(
@@ -52,22 +54,6 @@ public class TarefaService : ITarefaService
             TotalItens = resultado.TotalItens,
             TotalPaginas = (int)Math.Ceiling(
                 resultado.TotalItens / (double)consultaNormalizada.TamanhoPagina)
-        };
-    }
-
-    public async Task<ResumoTarefasResponse> ObterResumoAsync(CancellationToken cancellationToken = default)
-    {
-        var resumo = await _tarefaRepository.ObterResumoAtivasAsync(ObterDataAtualNegocio(), cancellationToken);
-
-        return new ResumoTarefasResponse
-        {
-            Total = resumo.Total,
-            Pendentes = resumo.Pendentes,
-            EmAndamento = resumo.EmAndamento,
-            Concluidas = resumo.Concluidas,
-            Vencidas = resumo.Vencidas,
-            VencemHoje = resumo.VencemHoje,
-            Proximas = resumo.Proximas
         };
     }
 
@@ -114,7 +100,7 @@ public class TarefaService : ITarefaService
         if (tarefaEncontrada is null)
         {
             _logger.LogWarning(
-                "Tarefa nÃ£o encontrada para consulta do histÃ³rico. TarefaId={TarefaId}",
+                "Tarefa não encontrada para consulta do histórico. TarefaId={TarefaId}",
                 id
             );
 
@@ -142,7 +128,7 @@ public class TarefaService : ITarefaService
         var tarefa = new Tarefa
         {
             UsuarioId = _usuarioAtual.Id,
-            Descricao = novaTarefa.Descricao.Trim(),
+            Descricao = NormalizarDescricao(novaTarefa.Descricao),
             Observacoes = NormalizarObservacoes(novaTarefa.Observacoes),
             Situacao = situacao,
             Prioridade = prioridade,
@@ -194,13 +180,11 @@ public class TarefaService : ITarefaService
             return null;
         }
 
-        var novaDescricao =
-            dadosAtualizados.Descricao.Trim();
+        var novaDescricao = NormalizarDescricao(dadosAtualizados.Descricao);
 
         var novasObservacoes = NormalizarObservacoes(dadosAtualizados.Observacoes);
 
-        var novaSituacao =
-            NormalizarSituacao(dadosAtualizados.Situacao);
+        var novaSituacao = NormalizadorConsultaTarefas.NormalizarSituacao(dadosAtualizados.Situacao);
 
         var novaPrioridade = NormalizarPrioridadeAtualizacao(dadosAtualizados.Prioridade, tarefaEncontrada.Prioridade);
 
@@ -283,13 +267,25 @@ public class TarefaService : ITarefaService
         if (prioridadeAlterada)
         {
             tarefaEncontrada.Prioridade = novaPrioridade;
-            _tarefaRepository.AdicionarHistorico(CriarHistorico(tarefaEncontrada, TiposHistoricoTarefa.AlteracaoPrioridade, agora, "Prioridade", prioridadeAnterior, novaPrioridade));
+            _tarefaRepository.AdicionarHistorico(CriarHistorico(
+                tarefaEncontrada,
+                TiposHistoricoTarefa.AlteracaoPrioridade,
+                agora,
+                "Prioridade",
+                prioridadeAnterior,
+                novaPrioridade));
         }
 
         if (dataVencimentoAlterada)
         {
             tarefaEncontrada.DataVencimento = dadosAtualizados.DataVencimento;
-            _tarefaRepository.AdicionarHistorico(CriarHistorico(tarefaEncontrada, TiposHistoricoTarefa.AlteracaoDataVencimento, agora, "DataVencimento", FormatarDataVencimento(dataVencimentoAnterior), FormatarDataVencimento(dadosAtualizados.DataVencimento)));
+            _tarefaRepository.AdicionarHistorico(CriarHistorico(
+                tarefaEncontrada,
+                TiposHistoricoTarefa.AlteracaoDataVencimento,
+                agora,
+                "DataVencimento",
+                FormatarDataVencimento(dataVencimentoAnterior),
+                FormatarDataVencimento(dadosAtualizados.DataVencimento)));
         }
 
         if (projetoAlterado)
@@ -449,7 +445,7 @@ public class TarefaService : ITarefaService
     {
         return string.IsNullOrWhiteSpace(situacao)
             ? SituacoesTarefa.Pendente
-            : NormalizarSituacao(situacao);
+            : NormalizadorConsultaTarefas.NormalizarSituacao(situacao);
     }
 
     private static string NormalizarPrioridadeCriacao(string? prioridade)
@@ -474,32 +470,42 @@ public class TarefaService : ITarefaService
 
     private static string? NormalizarObservacoes(string? observacoes)
     {
-        return string.IsNullOrWhiteSpace(observacoes) ? null : observacoes.Trim();
+        if (string.IsNullOrWhiteSpace(observacoes))
+        {
+            return null;
+        }
+
+        var resultado = observacoes.Trim();
+
+        if (resultado.Length > LimiteObservacoes)
+        {
+            throw new ArgumentException(
+                $"As observações da tarefa devem ter no máximo {LimiteObservacoes} caracteres.",
+                nameof(observacoes)
+            );
+        }
+
+        return resultado;
     }
 
-    private static string NormalizarSituacao(string situacao)
+    private static string NormalizarDescricao(string? descricao)
     {
-        var situacaoNormalizada = situacao.Trim();
+        var resultado = descricao?.Trim();
 
-        if (string.Equals(situacaoNormalizada, SituacoesTarefa.Pendente, StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(resultado))
         {
-            return SituacoesTarefa.Pendente;
+            throw new ArgumentException("A descrição da tarefa é obrigatória.", nameof(descricao));
         }
 
-        if (string.Equals(situacaoNormalizada, SituacoesTarefa.EmAndamento, StringComparison.OrdinalIgnoreCase))
+        if (resultado.Length > LimiteDescricao)
         {
-            return SituacoesTarefa.EmAndamento;
+            throw new ArgumentException(
+                $"A descrição da tarefa deve ter no máximo {LimiteDescricao} caracteres.",
+                nameof(descricao)
+            );
         }
 
-        if (string.Equals(situacaoNormalizada, SituacoesTarefa.Concluida, StringComparison.OrdinalIgnoreCase))
-        {
-            return SituacoesTarefa.Concluida;
-        }
-
-        throw new ArgumentException(
-            "A situação da tarefa é inválida.",
-            nameof(situacao)
-        );
+        return resultado;
     }
 
     private static bool EstaConcluida(
@@ -592,7 +598,6 @@ public class TarefaService : ITarefaService
         if (origem.Any(id => id <= 0)) throw new ArgumentException("Os IDs das etiquetas devem ser maiores que zero.", nameof(idsRecebidos));
         var ids = origem.Distinct().ToList();
         if (ids.Count == 0) return [];
-        if (_etiquetaRepository is null) throw new ArgumentException("Não foi possível validar as etiquetas informadas.", nameof(idsRecebidos));
         var etiquetas = await _etiquetaRepository.BuscarPorIdsAsync(ids, cancellationToken);
         if (etiquetas.Count != ids.Count) throw new ArgumentException("Uma ou mais etiquetas informadas não existem.", nameof(idsRecebidos));
         return etiquetas.OrderBy(etiqueta => etiqueta.Nome).ThenBy(etiqueta => etiqueta.Id).ToList();
@@ -602,12 +607,19 @@ public class TarefaService : ITarefaService
     {
         if (projetoId is null) return null;
         if (projetoId <= 0) throw new ArgumentException("O ID do projeto deve ser maior que zero.", nameof(projetoId));
-        if (_projetoRepository is null) throw new ArgumentException("Não foi possível validar o projeto informado.", nameof(projetoId));
         return await _projetoRepository.BuscarPorIdAsync(projetoId.Value, rastrearAlteracoes: true, cancellationToken: cancellationToken)
             ?? throw new ArgumentException("O projeto informado não existe.", nameof(projetoId));
     }
 
-    private static string FormatarEtiquetas(IEnumerable<Etiqueta> etiquetas) => JsonSerializer.Serialize(etiquetas.OrderBy(etiqueta => etiqueta.Nome).ThenBy(etiqueta => etiqueta.Id).Select(etiqueta => etiqueta.Nome));
+    private static string FormatarEtiquetas(IEnumerable<Etiqueta> etiquetas)
+    {
+        var nomes = etiquetas
+            .OrderBy(etiqueta => etiqueta.Nome)
+            .ThenBy(etiqueta => etiqueta.Id)
+            .Select(etiqueta => etiqueta.Nome);
+
+        return JsonSerializer.Serialize(nomes);
+    }
 
     private static HistoricoTarefa CriarHistorico(
         Tarefa tarefa,

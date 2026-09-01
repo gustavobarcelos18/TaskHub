@@ -32,9 +32,13 @@ import { IndicadorSituacaoTarefa } from "./IndicadorSituacaoTarefa";
 
 type TabelaLixeiraProps = { tarefas: Tarefa[] };
 
-export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) {
+export function TabelaLixeira({
+  tarefas: tarefasIniciais,
+}: TabelaLixeiraProps) {
   const [tarefas, setTarefas] = useState(tarefasIniciais);
-  const [tarefaSelecionada, setTarefaSelecionada] = useState<Tarefa | null>(null);
+  const [tarefaSelecionada, setTarefaSelecionada] = useState<Tarefa | null>(
+    null,
+  );
   const [processandoId, setProcessandoId] = useState<number | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -53,7 +57,11 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
       removerDaLista(tarefa.id);
       setFeedback("Tarefa restaurada com sucesso.");
     } catch (erro) {
-      setErro(erro instanceof Error ? erro.message : "Não foi possível restaurar a tarefa.");
+      setErro(
+        erro instanceof Error
+          ? erro.message
+          : "Não foi possível restaurar a tarefa.",
+      );
     } finally {
       setProcessandoId(null);
     }
@@ -70,7 +78,11 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
       setTarefaSelecionada(null);
       setFeedback("Tarefa excluída permanentemente.");
     } catch (erro) {
-      setErro(erro instanceof Error ? erro.message : "Não foi possível excluir permanentemente a tarefa.");
+      setErro(
+        erro instanceof Error
+          ? erro.message
+          : "Não foi possível excluir permanentemente a tarefa.",
+      );
     } finally {
       setProcessandoId(null);
     }
@@ -93,28 +105,49 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
 
         <TableContainer component={Paper} variant="outlined">
           <Box sx={{ overflowX: "auto" }}>
-            <Table sx={{ minWidth: 800 }} aria-label="Tabela de tarefas excluídas">
+            <Table
+              sx={{ minWidth: 800 }}
+              aria-label="Tabela de tarefas excluídas"
+            >
               <TableHead>
                 <TableRow>
                   <TableCell>Descrição</TableCell>
                   <TableCell width={180}>Situação</TableCell>
                   <TableCell width={200}>Excluída em</TableCell>
-                  <TableCell width={250} align="right">Ações</TableCell>
+                  <TableCell width={250} align="right">
+                    Ações
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {tarefas.map((tarefa) => (
                   <TableRow key={tarefa.id} hover>
-                    <TableCell component="th" scope="row">{tarefa.descricao}</TableCell>
-                    <TableCell><IndicadorSituacaoTarefa situacao={tarefa.situacao} /></TableCell>
+                    <TableCell component="th" scope="row">
+                      {tarefa.descricao}
+                    </TableCell>
+                    <TableCell>
+                      <IndicadorSituacaoTarefa situacao={tarefa.situacao} />
+                    </TableCell>
                     <TableCell>{formatarDataHora(tarefa.excluidaEm)}</TableCell>
                     <TableCell align="right">
-                      <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{ justifyContent: "flex-end" }}
+                      >
                         <Button
                           size="small"
-                          startIcon={processandoId === tarefa.id ? <CircularProgress size={16} /> : <RestoreIcon />}
+                          startIcon={
+                            processandoId === tarefa.id ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <RestoreIcon />
+                            )
+                          }
                           disabled={processandoId !== null}
-                          onClick={() => { void restaurar(tarefa); }}
+                          onClick={() => {
+                            void restaurar(tarefa);
+                          }}
                         >
                           Restaurar
                         </Button>
@@ -123,7 +156,10 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
                           color="error"
                           startIcon={<DeleteForeverIcon />}
                           disabled={processandoId !== null}
-                          onClick={() => { setErro(null); setTarefaSelecionada(tarefa); }}
+                          onClick={() => {
+                            setErro(null);
+                            setTarefaSelecionada(tarefa);
+                          }}
                         >
                           Excluir definitivamente
                         </Button>
@@ -137,31 +173,62 @@ export function TabelaLixeira({ tarefas: tarefasIniciais }: TabelaLixeiraProps) 
         </TableContainer>
       </Stack>
 
-      <Dialog open={tarefaSelecionada !== null} onClose={() => { if (processandoId === null) setTarefaSelecionada(null); }}>
+      <Dialog
+        open={tarefaSelecionada !== null}
+        onClose={() => {
+          if (processandoId === null) setTarefaSelecionada(null);
+        }}
+      >
         <DialogTitle>Excluir permanentemente?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            A tarefa “{tarefaSelecionada?.descricao}” será removida permanentemente e esta ação não poderá ser desfeita.
+            A tarefa “{tarefaSelecionada?.descricao}” será removida
+            permanentemente e esta ação não poderá ser desfeita.
           </DialogContentText>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Todo o histórico desta tarefa também será removido. Não será possível restaurá-la.
+            Todo o histórico desta tarefa também será removido. Não será
+            possível restaurá-la.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button disabled={processandoId !== null} onClick={() => setTarefaSelecionada(null)}>Cancelar</Button>
+          <Button
+            disabled={processandoId !== null}
+            onClick={() => setTarefaSelecionada(null)}
+          >
+            Cancelar
+          </Button>
           <Button
             color="error"
             variant="contained"
             disabled={processandoId !== null}
-            startIcon={processandoId !== null ? <CircularProgress size={16} color="inherit" /> : <DeleteForeverIcon />}
-            onClick={() => { void confirmarExclusaoPermanente(); }}
+            startIcon={
+              processandoId !== null ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <DeleteForeverIcon />
+              )
+            }
+            onClick={() => {
+              void confirmarExclusaoPermanente();
+            }}
           >
             Excluir permanentemente
           </Button>
         </DialogActions>
       </Dialog>
-      <Snackbar open={feedback !== null} autoHideDuration={4000} onClose={() => setFeedback(null)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
-        <Alert severity="success" variant="filled" onClose={() => setFeedback(null)}>{feedback}</Alert>
+      <Snackbar
+        open={feedback !== null}
+        autoHideDuration={4000}
+        onClose={() => setFeedback(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          variant="filled"
+          onClose={() => setFeedback(null)}
+        >
+          {feedback}
+        </Alert>
       </Snackbar>
     </>
   );

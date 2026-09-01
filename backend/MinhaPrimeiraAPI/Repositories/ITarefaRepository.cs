@@ -6,8 +6,6 @@ public interface ITarefaRepository
 {
     Task<ResultadoConsultaTarefas> ListarAtivasAsync(ConsultaTarefas consulta, CancellationToken cancellationToken = default);
 
-    Task<ResultadoResumoTarefas> ObterResumoAtivasAsync(DateOnly hoje, CancellationToken cancellationToken = default);
-
     Task<List<Tarefa>> ListarExcluidasAsync(CancellationToken cancellationToken = default);
 
     Task<Tarefa?> BuscarAtivaPorIdAsync(

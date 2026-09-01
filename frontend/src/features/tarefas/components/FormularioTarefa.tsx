@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  useForm,
-  Controller,
-} from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -129,8 +126,22 @@ export function FormularioTarefa() {
           name="prioridade"
           control={control}
           render={({ field }) => (
-            <TextField id="prioridade" label="Prioridade" select value={field.value} onChange={field.onChange} onBlur={field.onBlur} error={Boolean(errors.prioridade)} helperText={errors.prioridade?.message} fullWidth>
-              {PRIORIDADES_TAREFA.map((prioridade) => <MenuItem key={prioridade} value={prioridade}>{prioridade === "Media" ? "Média" : prioridade}</MenuItem>)}
+            <TextField
+              id="prioridade"
+              label="Prioridade"
+              select
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={Boolean(errors.prioridade)}
+              helperText={errors.prioridade?.message}
+              fullWidth
+            >
+              {PRIORIDADES_TAREFA.map((prioridade) => (
+                <MenuItem key={prioridade} value={prioridade}>
+                  {prioridade === "Media" ? "Média" : prioridade}
+                </MenuItem>
+              ))}
             </TextField>
           )}
         />
@@ -143,7 +154,10 @@ export function FormularioTarefa() {
           minRows={4}
           slotProps={{ htmlInput: { maxLength: LIMITE_OBSERVACOES_TAREFA } }}
           error={Boolean(errors.observacoes)}
-          helperText={errors.observacoes?.message ?? `Opcional. Máximo de ${LIMITE_OBSERVACOES_TAREFA} caracteres.`}
+          helperText={
+            errors.observacoes?.message ??
+            `Opcional. Máximo de ${LIMITE_OBSERVACOES_TAREFA} caracteres.`
+          }
           fullWidth
           {...register("observacoes")}
         />
@@ -161,7 +175,9 @@ export function FormularioTarefa() {
               label="Data de vencimento"
               placeholder="dd/mm/aaaa"
               value={field.value}
-              onChange={(evento) => field.onChange(mascararDataCivil(evento.target.value))}
+              onChange={(evento) =>
+                field.onChange(mascararDataCivil(evento.target.value))
+              }
               onBlur={field.onBlur}
               slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }}
               error={Boolean(errors.dataVencimento)}

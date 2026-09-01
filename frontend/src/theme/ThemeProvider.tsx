@@ -16,7 +16,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     <AppRouterCacheProvider>
       <MuiThemeProvider theme={theme}>
         <CssBaseline />
-        <SessaoProvider><ProtecaoRotas>{children}</ProtecaoRotas></SessaoProvider>
+        <SessaoProvider>
+          <ProtecaoRotas>{children}</ProtecaoRotas>
+        </SessaoProvider>
       </MuiThemeProvider>
     </AppRouterCacheProvider>
   );

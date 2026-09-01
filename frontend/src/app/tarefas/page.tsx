@@ -5,14 +5,24 @@ import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
-import {
-  BotaoLink,
-  IconBotaoLink,
-} from "@/components/ComponentesRoteador";
+import { BotaoLink, IconBotaoLink } from "@/components/ComponentesRoteador";
 import { TabelaTarefas } from "@/features/tarefas/components/TabelaTarefas";
 import { listarTarefasServidor } from "@/features/tarefas/services/tarefas-server-service";
-import { listarEtiquetasServidor, listarProjetosServidor } from "@/features/tarefas/services/cadastros-server-service";
-import { PRAZOS_TAREFA, PRIORIDADES_TAREFA, SITUACOES_TAREFA, type ConsultaTarefas, type DirecaoOrdenacao, type OrdenarTarefasPor, type PrazoTarefa, type PrioridadeTarefa, type SituacaoTarefa } from "@/features/tarefas/types/tarefa";
+import {
+  listarEtiquetasServidor,
+  listarProjetosServidor,
+} from "@/features/tarefas/services/cadastros-server-service";
+import {
+  PRAZOS_TAREFA,
+  PRIORIDADES_TAREFA,
+  SITUACOES_TAREFA,
+  type ConsultaTarefas,
+  type DirecaoOrdenacao,
+  type OrdenarTarefasPor,
+  type PrazoTarefa,
+  type PrioridadeTarefa,
+  type SituacaoTarefa,
+} from "@/features/tarefas/types/tarefa";
 
 type TarefasPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -20,28 +30,52 @@ type TarefasPageProps = {
 
 function obterNumero(valor: string | string[] | undefined): number | undefined {
   const numero = Number(valor);
-  return Number.isInteger(numero) ? numero : undefined;
+  return Number.isInteger(numero) && numero > 0 ? numero : undefined;
 }
 
-function obterValorValido<T extends string>(valor: string | string[] | undefined, valores: readonly T[]): T | undefined {
-  return typeof valor === "string" && valores.includes(valor as T) ? valor as T : undefined;
+function obterValorValido<T extends string>(
+  valor: string | string[] | undefined,
+  valores: readonly T[],
+): T | undefined {
+  return typeof valor === "string" && valores.includes(valor as T)
+    ? (valor as T)
+    : undefined;
 }
 
 export default async function TarefasPage({ searchParams }: TarefasPageProps) {
   const parametros = await searchParams;
   const consulta: ConsultaTarefas = {
     busca: typeof parametros.busca === "string" ? parametros.busca : undefined,
-    situacao: obterValorValido<SituacaoTarefa>(parametros.situacao, SITUACOES_TAREFA),
-    prioridade: obterValorValido<PrioridadeTarefa>(parametros.prioridade, PRIORIDADES_TAREFA),
+    situacao: obterValorValido<SituacaoTarefa>(
+      parametros.situacao,
+      SITUACOES_TAREFA,
+    ),
+    prioridade: obterValorValido<PrioridadeTarefa>(
+      parametros.prioridade,
+      PRIORIDADES_TAREFA,
+    ),
     prazo: obterValorValido<PrazoTarefa>(parametros.prazo, PRAZOS_TAREFA),
     etiquetaId: obterNumero(parametros.etiquetaId),
     projetoId: obterNumero(parametros.projetoId),
-    ordenarPor: obterValorValido<OrdenarTarefasPor>(parametros.ordenarPor, ["descricao", "situacao", "prioridade", "dataVencimento", "ultimaAtualizacao"]),
-    direcao: obterValorValido<DirecaoOrdenacao>(parametros.direcao, ["asc", "desc"]),
+    ordenarPor: obterValorValido<OrdenarTarefasPor>(parametros.ordenarPor, [
+      "descricao",
+      "situacao",
+      "prioridade",
+      "dataVencimento",
+      "ultimaAtualizacao",
+    ]),
+    direcao: obterValorValido<DirecaoOrdenacao>(parametros.direcao, [
+      "asc",
+      "desc",
+    ]),
     pagina: obterNumero(parametros.pagina),
     tamanhoPagina: obterNumero(parametros.tamanhoPagina),
   };
-  const [tarefas, etiquetas, projetos] = await Promise.all([listarTarefasServidor(consulta), listarEtiquetasServidor(), listarProjetosServidor()]);
+  const [tarefas, etiquetas, projetos] = await Promise.all([
+    listarTarefasServidor(consulta),
+    listarEtiquetasServidor(),
+    listarProjetosServidor(),
+  ]);
 
   return (
     <Box
@@ -104,7 +138,12 @@ export default async function TarefasPage({ searchParams }: TarefasPageProps) {
             </Stack>
           </Stack>
 
-          <TabelaTarefas resultado={tarefas} consulta={consulta} etiquetas={etiquetas} projetos={projetos} />
+          <TabelaTarefas
+            resultado={tarefas}
+            consulta={consulta}
+            etiquetas={etiquetas}
+            projetos={projetos}
+          />
         </Stack>
       </Container>
     </Box>

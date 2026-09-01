@@ -57,18 +57,6 @@ public class TarefasController : ControllerBase
     }
 
     /// <summary>
-    /// Retorna os indicadores das tarefas ativas.
-    /// </summary>
-    [HttpGet("resumo")]
-    [ProducesResponseType(typeof(ResumoTarefasResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ResumoTarefasResponse>> ObterResumo(CancellationToken cancellationToken)
-    {
-        var resumo = await _tarefaService.ObterResumoAsync(cancellationToken);
-
-        return Ok(resumo);
-    }
-
-    /// <summary>
     /// Lista todas as tarefas excluídas logicamente.
     /// </summary>
     [HttpGet("excluidas")]
@@ -82,7 +70,7 @@ public class TarefasController : ControllerBase
     }
 
     /// <summary>
-    /// Lista o histÃ³rico de alteraÃ§Ãµes de uma tarefa, inclusive se ela estiver na lixeira.
+    /// Lista o histórico de alterações de uma tarefa, inclusive se ela estiver na lixeira.
     /// </summary>
     [HttpGet("{id:int}/historico")]
     [ProducesResponseType(typeof(List<HistoricoTarefaResponse>), StatusCodes.Status200OK)]
@@ -97,7 +85,7 @@ public class TarefasController : ControllerBase
         if (erroId is not null)
         {
             _logger.LogWarning(
-                "Consulta de histÃ³rico rejeitada. TarefaId={TarefaId}. Motivo={Motivo}",
+                "Consulta de histórico rejeitada. TarefaId={TarefaId}. Motivo={Motivo}",
                 id,
                 erroId
             );
@@ -105,7 +93,7 @@ public class TarefasController : ControllerBase
             return Problem(
                 detail: erroId,
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "ID invÃ¡lido"
+                title: "ID inválido"
             );
         }
 
@@ -116,7 +104,7 @@ public class TarefasController : ControllerBase
             return Problem(
                 detail: $"Nenhuma tarefa encontrada com o ID {id}.",
                 statusCode: StatusCodes.Status404NotFound,
-                title: "Tarefa nÃ£o encontrada"
+                title: "Tarefa não encontrada"
             );
         }
 
@@ -174,14 +162,25 @@ public class TarefasController : ControllerBase
         [FromBody] CriarTarefaRequest novaTarefa,
         CancellationToken cancellationToken)
     {
-        var tarefaCriada =
-            await _tarefaService.CriarAsync(novaTarefa, cancellationToken);
+        try
+        {
+            var tarefaCriada = await _tarefaService.CriarAsync(novaTarefa, cancellationToken);
 
-        return CreatedAtAction(
-            nameof(BuscarPorId),
-            new { id = tarefaCriada.Id },
-            tarefaCriada
-        );
+            return CreatedAtAction(
+                nameof(BuscarPorId),
+                new { id = tarefaCriada.Id },
+                tarefaCriada
+            );
+        }
+        catch (ArgumentException exception)
+        {
+            _logger.LogWarning(exception, "Criação de tarefa rejeitada.");
+            return Problem(
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Tarefa inválida"
+            );
+        }
     }
 
     /// <summary>
@@ -213,12 +212,25 @@ public class TarefasController : ControllerBase
             );
         }
 
-        var tarefaAtualizada =
-            await _tarefaService.AtualizarAsync(
+        TarefaResponse? tarefaAtualizada;
+
+        try
+        {
+            tarefaAtualizada = await _tarefaService.AtualizarAsync(
                 id,
                 dadosAtualizados,
                 cancellationToken
             );
+        }
+        catch (ArgumentException exception)
+        {
+            _logger.LogWarning(exception, "Atualização de tarefa rejeitada. TarefaId={TarefaId}", id);
+            return Problem(
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Tarefa inválida"
+            );
+        }
 
         if (tarefaAtualizada is null)
         {

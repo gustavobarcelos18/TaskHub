@@ -142,15 +142,28 @@ export function MenuAcoesTarefa({ tarefa }: MenuAcoesTarefaProps) {
         </MenuItem>
       </Menu>
 
-      <DialogoEditarTarefa
-        tarefa={tarefa}
-        open={dialogoEdicaoAberto}
-        onOpenChange={setDialogoEdicaoAberto}
-        onSuccess={setFeedback}
-      />
+      {dialogoEdicaoAberto && (
+        <DialogoEditarTarefa
+          tarefa={tarefa}
+          open
+          onOpenChange={setDialogoEdicaoAberto}
+          onSuccess={setFeedback}
+        />
+      )}
 
-      <Snackbar open={feedback !== null} autoHideDuration={4000} onClose={() => setFeedback(null)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
-        <Alert severity="success" variant="filled" onClose={() => setFeedback(null)}>{feedback}</Alert>
+      <Snackbar
+        open={feedback !== null}
+        autoHideDuration={4000}
+        onClose={() => setFeedback(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          variant="filled"
+          onClose={() => setFeedback(null)}
+        >
+          {feedback}
+        </Alert>
       </Snackbar>
 
       <Dialog
@@ -190,8 +203,8 @@ export function MenuAcoesTarefa({ tarefa }: MenuAcoesTarefaProps) {
 
             <DialogContentText id="dialogo-exclusao-descricao" component="div">
               <Typography component="span" variant="body2">
-                A tarefa <strong>“{tarefa.descricao}”</strong> deixará de aparecer
-                na listagem ativa.
+                A tarefa <strong>“{tarefa.descricao}”</strong> deixará de
+                aparecer na listagem ativa.
               </Typography>
             </DialogContentText>
           </Box>
@@ -231,7 +244,6 @@ export function MenuAcoesTarefa({ tarefa }: MenuAcoesTarefaProps) {
           </Button>
         </DialogActions>
       </Dialog>
-
     </>
   );
 }
